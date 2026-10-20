@@ -22,7 +22,6 @@ LWJGL/*/build/
 # Custom keystores
 *.jks
 voltage_studios.jks
-.vscode/
 .claude/
 .cursor/
 .codex/
