@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layoutAnimation xmlns:android="http://schemas.android.com/apk/res/android"
+    android:animationOrder="normal"
+    android:delay="0.12"
+    android:animation="@anim/qa_item_fade_in_up" />

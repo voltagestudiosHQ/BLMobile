@@ -46,6 +46,8 @@ import com.movtery.zalithlauncher.ui.theme.ColorThemeType
 import com.movtery.zalithlauncher.utils.animation.TransitionAnimationType
 
 object AllSettings : SettingsRegistry() {
+    val developerMode = boolSetting("developerMode", false)
+
     //Renderer
     /**
      * 全局渲染器
@@ -361,19 +363,18 @@ object AllSettings : SettingsRegistry() {
      */
     val launcherColorTheme = enumSetting(
         "launcherColorTheme",
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) ColorThemeType.DYNAMIC
-        else ColorThemeType.EMBERMIRE
+        ColorThemeType.VERDANT_DAWN
     )
 
     /**
      * 自定义颜色主题色
      */
-    val launcherCustomColor = intSetting("launcherCustomColor", Color.Blue.toArgb())
+    val launcherCustomColor = intSetting("launcherCustomColor", Color(0xFF5C8C3C).toArgb())
 
     /**
      * 自定义颜色配色风格
      */
-    val launcherCustomPaletteStyle = enumSetting("launcherCustomPaletteStyle", PaletteStyle.TonalSpot)
+    val launcherCustomPaletteStyle = enumSetting("launcherCustomPaletteStyle", PaletteStyle.Spritz)
 
     /**
      * 启动器UI深色主题

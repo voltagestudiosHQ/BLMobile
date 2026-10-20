@@ -23,6 +23,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.Toast
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -60,6 +62,7 @@ import com.movtery.zalithlauncher.ui.AndroidStringText
 import com.movtery.zalithlauncher.ui.androidText
 import com.movtery.zalithlauncher.ui.base.BaseAppCompatActivity
 import com.movtery.zalithlauncher.ui.base.ObserveFullScreenSetting
+import com.movtery.zalithlauncher.ui.control.gamepad.DeveloperModeSequence
 import com.movtery.zalithlauncher.ui.buildAppendedText
 import com.movtery.zalithlauncher.ui.components.SimpleAlertDialog
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
@@ -110,6 +113,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.levimc.launcher.ui.activities.MainActivity as BedrockMainActivity
 import java.io.File
 import java.util.Locale
 
@@ -118,6 +122,9 @@ private const val TAG = "MainActivity"
 @AndroidEntryPoint
 class MainActivity : BaseAppCompatActivity() {
     override fun isIgnoreNotch(): Boolean = AllSettings.launcherFullScreen.getValue()
+
+    private val bedrockInstanceSelected = mutableStateOf(false)
+    private val developerModeSequence = DeveloperModeSequence()
 
     /**
      * 屏幕堆栈管理ViewModel
@@ -186,6 +193,8 @@ class MainActivity : BaseAppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bedrockInstanceSelected.value = getSharedPreferences("launcher_instance", MODE_PRIVATE)
+            .getBoolean("bedrock_selected", false)
         //处理外部导入
         val isImporting = handleImportIfNeeded(intent)
 
@@ -334,6 +343,17 @@ class MainActivity : BaseAppCompatActivity() {
                             screenBackStackModel = screenBackStackModel,
                             eventViewModel = eventViewModel,
                             modpackImportViewModel = modpackImportViewModel,
+                            isBedrockSelected = bedrockInstanceSelected.value,
+                            onSelectBedrock = { selected ->
+                                bedrockInstanceSelected.value = selected
+                                getSharedPreferences("launcher_instance", MODE_PRIVATE)
+                                    .edit()
+                                    .putBoolean("bedrock_selected", selected)
+                                    .apply()
+                            },
+                            onLaunchBedrock = ::launchBedrockEdition,
+                            onOpenBedrockMods = ::openBedrockMods,
+                            onOpenBedrockLauncher = ::openBedrockLauncher,
                             submitError = {
                                 errorViewModel.showError(it)
                             }
@@ -683,6 +703,40 @@ class MainActivity : BaseAppCompatActivity() {
         }
     }
 
+    private fun launchBedrockEdition() {
+        if (!supportsBedrockRuntime()) return
+        startActivity(
+            Intent(this, BedrockMainActivity::class.java)
+                .putExtra("org.levimc.launcher.extra.EMBEDDED_DIRECT_LAUNCH", true)
+        )
+    }
+
+    private fun openBedrockLauncher() {
+        if (!supportsBedrockRuntime()) return
+        startActivity(Intent(this, BedrockMainActivity::class.java))
+    }
+
+    private fun supportsBedrockRuntime(): Boolean {
+        if (Build.SUPPORTED_64_BIT_ABIS.any { it == "arm64-v8a" }) return true
+        Toast.makeText(this, R.string.bedrock_arm64_required, Toast.LENGTH_LONG).show()
+        return false
+    }
+
+    private fun openBedrockMods() {
+        if (!supportsBedrockRuntime()) return
+        val bedrockVersions = org.levimc.launcher.core.versions.VersionManager.get(this)
+        if (bedrockVersions.getSelectedVersion() == null) {
+            startActivity(Intent(this, BedrockMainActivity::class.java))
+            return
+        }
+        startActivity(
+            Intent(
+                this,
+                org.levimc.launcher.ui.activities.ModsFullscreenActivity::class.java
+            )
+        )
+    }
+
     /**
      * 是否保持屏幕不熄屏
      */
@@ -858,12 +912,31 @@ class MainActivity : BaseAppCompatActivity() {
         ControlManager.checkDefaultAndRefresh(this@MainActivity)
     }
 
+    override fun onPause() {
+        developerModeSequence.reset()
+        super.onPause()
+    }
+
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (isCaptureKey) {
+            developerModeSequence.reset()
             Logger.info(TAG, "Capture key event: $event")
             eventViewModel.sendEvent(EventViewModel.Event.Key.OnKeyDown(event))
             return true
+        }
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            val fromGamepad = event.isFromSource(InputDevice.SOURCE_GAMEPAD) ||
+                event.isFromSource(InputDevice.SOURCE_DPAD)
+            if (!fromGamepad) {
+                developerModeSequence.reset()
+            } else if (
+                developerModeSequence.onKeyDown(event.keyCode) &&
+                !AllSettings.developerMode.getValue()
+            ) {
+                AllSettings.developerMode.save(true)
+                Toast.makeText(this, R.string.developer_mode_enabled, Toast.LENGTH_LONG).show()
+            }
         }
         return super.dispatchKeyEvent(event)
     }

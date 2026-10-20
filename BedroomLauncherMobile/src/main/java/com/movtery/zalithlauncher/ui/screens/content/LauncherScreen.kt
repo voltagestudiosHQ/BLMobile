@@ -19,6 +19,7 @@
 package com.movtery.zalithlauncher.ui.screens.content
 
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -96,7 +97,12 @@ import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
 fun LauncherScreen(
     backStackViewModel: ScreenBackStackViewModel,
     navigateToVersions: (Version) -> Unit,
+    isBedrockSelected: Boolean,
+    onSelectBedrock: (Boolean) -> Unit,
     onLaunchGame: (Version?) -> Unit,
+    onLaunchBedrock: () -> Unit,
+    onOpenBedrockMods: () -> Unit,
+    onOpenBedrockLauncher: () -> Unit,
     onOpenLink: (String) -> Unit,
     onHomePageEvent: (MarkdownBlock.Button.Event) -> Unit,
 ) {
@@ -145,6 +151,11 @@ fun LauncherScreen(
                     .fillMaxHeight()
                     .padding(top = 12.dp, end = 12.dp, bottom = 12.dp),
                 onLaunchGame = onLaunchGame,
+                isBedrockSelected = isBedrockSelected,
+                onSelectBedrock = onSelectBedrock,
+                onLaunchBedrock = onLaunchBedrock,
+                onOpenBedrockMods = onOpenBedrockMods,
+                onOpenBedrockLauncher = onOpenBedrockLauncher,
                 toAccountManageScreen = toAccountManageScreen,
                 toVersionManageScreen = toVersionManageScreen,
                 toVersionSettingsScreen = toVersionSettingsScreen
@@ -245,6 +256,11 @@ private fun ContentMenu(
 private fun RightMenuContent(
     modifier: Modifier = Modifier,
     onLaunchGame: (Version?) -> Unit,
+    isBedrockSelected: Boolean,
+    onSelectBedrock: (Boolean) -> Unit,
+    onLaunchBedrock: () -> Unit,
+    onOpenBedrockMods: () -> Unit,
+    onOpenBedrockLauncher: () -> Unit,
     toAccountManageScreen: () -> Unit,
     toVersionManageScreen: () -> Unit,
     toVersionSettingsScreen: () -> Unit,
@@ -263,17 +279,24 @@ private fun RightMenuContent(
     ) {
         val (accountAvatar, versionManagerLayout, launchButton) = createRefs()
 
-        AccountAvatar(
-            modifier = Modifier
-                .constrainAs(accountAvatar) {
-                    top.linkTo(parent.top)
-                    bottom.linkTo(launchButton.top, margin = 32.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
-            account = account,
-            onClick = toAccountManageScreen
-        )
+        val accountEntryModifier = Modifier.constrainAs(accountAvatar) {
+            top.linkTo(parent.top)
+            bottom.linkTo(launchButton.top, margin = 32.dp)
+            start.linkTo(parent.start)
+            end.linkTo(parent.end)
+        }
+        if (isBedrockSelected) {
+            BedrockAccountEntry(
+                modifier = accountEntryModifier,
+                onClick = onOpenBedrockLauncher
+            )
+        } else {
+            AccountAvatar(
+                modifier = accountEntryModifier,
+                account = account,
+                onClick = toAccountManageScreen
+            )
+        }
 
         var showList by remember { mutableStateOf(false) }
         var versionManagerRow by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -295,25 +318,70 @@ private fun RightMenuContent(
                             versionManagerRow = coordinates
                         }
                 ) {
-                    VersionManagerLayout(
-                        isRefreshing = isRefreshing,
-                        version = version,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .fillMaxWidth(),
-                        swapToVersionManage = toVersionManageScreen,
-                        openListMenu = { showList = true },
+                    if (isBedrockSelected) {
+                        Text(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth()
+                                .clickable(
+                                    role = Role.Button,
+                                    onClick = { showList = true }
+                                ),
+                            text = stringResource(R.string.main_launch_bedrock),
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1
+                        )
+                    } else {
+                        VersionManagerLayout(
+                            isRefreshing = isRefreshing,
+                            version = version,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            swapToVersionManage = toVersionManageScreen,
+                            openListMenu = { showList = true },
+                        )
+                    }
+                }
+                IconButton(
+                    modifier = Modifier.padding(end = 4.dp),
+                    onClick = { showList = true }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_drop_down_rounded),
+                        contentDescription = stringResource(R.string.main_select_instance)
                     )
                 }
-                version?.takeIf { !isRefreshing && it.isValid() }?.let {
+                if (isBedrockSelected) {
                     IconButton(
-                        modifier = Modifier.padding(end = 8.dp),
-                        onClick = toVersionSettingsScreen
+                        modifier = Modifier.padding(end = 4.dp),
+                        onClick = onOpenBedrockLauncher
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_settings_filled),
-                            contentDescription = stringResource(R.string.versions_manage_settings)
+                            painter = painterResource(R.drawable.ic_person_outlined),
+                            contentDescription = stringResource(R.string.main_bedrock_settings)
                         )
+                    }
+                    IconButton(
+                        modifier = Modifier.padding(end = 8.dp),
+                        onClick = onOpenBedrockMods
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_extension_outlined),
+                            contentDescription = stringResource(R.string.main_manage_bedrock_mods)
+                        )
+                    }
+                } else {
+                    version?.takeIf { !isRefreshing && it.isValid() }?.let {
+                        IconButton(
+                            modifier = Modifier.padding(end = 8.dp),
+                            onClick = toVersionSettingsScreen
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_settings_filled),
+                                contentDescription = stringResource(R.string.versions_manage_settings)
+                            )
+                        }
                     }
                 }
             }
@@ -333,6 +401,28 @@ private fun RightMenuContent(
                 ),
                 shape = MaterialTheme.shapes.extraLarge
             ) {
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = stringResource(R.string.main_launch_bedrock)
+                            )
+                            Icon(
+                                painter = painterResource(R.drawable.ic_play_arrow_filled),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSelectBedrock(true)
+                        showList = false
+                    }
+                )
                 val versions by VersionsManager.versions.collectAsStateWithLifecycle()
                 versions.forEach { version0 ->
                     DropdownMenuItem(
@@ -348,6 +438,7 @@ private fun RightMenuContent(
                                 )
                                 IconButton(
                                     onClick = {
+                                        onSelectBedrock(false)
                                         onLaunchGame(version0)
                                         showList = false
                                     }
@@ -361,7 +452,11 @@ private fun RightMenuContent(
                             }
                         },
                         onClick = {
-                            if (version == version0) return@DropdownMenuItem
+                            onSelectBedrock(false)
+                            if (version == version0) {
+                                showList = false
+                                return@DropdownMenuItem
+                            }
                             VersionsManager.saveVersion(version0)
                             showList = false
                         }
@@ -378,12 +473,52 @@ private fun RightMenuContent(
                 }
                 .padding(PaddingValues(horizontal = 12.dp)),
             {
-                onLaunchGame(null)
+                if (isBedrockSelected) onLaunchBedrock() else onLaunchGame(null)
             },
             {
-                MarqueeText(text = stringResource(R.string.main_launch_game))
+                MarqueeText(
+                    text = stringResource(
+                        if (isBedrockSelected) R.string.main_launch_bedrock_game
+                        else R.string.main_launch_game
+                    )
+                )
             }
         )
+    }
+}
+
+@Composable
+private fun BedrockAccountEntry(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_settings_filled),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.main_bedrock_account_settings),
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1
+            )
+            Text(
+                text = stringResource(R.string.main_bedrock_account_settings_summary),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -391,6 +526,11 @@ private fun RightMenuContent(
 private fun RightMenu(
     isVisible: Boolean,
     onLaunchGame: (Version?) -> Unit,
+    isBedrockSelected: Boolean,
+    onSelectBedrock: (Boolean) -> Unit,
+    onLaunchBedrock: () -> Unit,
+    onOpenBedrockMods: () -> Unit,
+    onOpenBedrockLauncher: () -> Unit,
     modifier: Modifier = Modifier,
     toAccountManageScreen: () -> Unit = {},
     toVersionManageScreen: () -> Unit = {},
@@ -409,6 +549,11 @@ private fun RightMenu(
         RightMenuContent(
             modifier = Modifier.fillMaxSize(),
             onLaunchGame = onLaunchGame,
+            isBedrockSelected = isBedrockSelected,
+            onSelectBedrock = onSelectBedrock,
+            onLaunchBedrock = onLaunchBedrock,
+            onOpenBedrockMods = onOpenBedrockMods,
+            onOpenBedrockLauncher = onOpenBedrockLauncher,
             toAccountManageScreen = toAccountManageScreen,
             toVersionManageScreen = toVersionManageScreen,
             toVersionSettingsScreen = toVersionSettingsScreen

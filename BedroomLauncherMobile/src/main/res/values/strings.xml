@@ -172,6 +172,15 @@
     <string name="unpack_screen_jna">Enables Minecraft to directly call low-level OS functions</string>
     <!-- Main Menu -->
     <string name="main_launch_game">Launch</string>
+    <string name="main_launch_bedrock">Bedrock Edition</string>
+    <string name="main_launch_bedrock_game">Play Bedrock</string>
+    <string name="main_manage_bedrock_mods">Bedrock mods and add-ons</string>
+    <string name="main_bedrock_settings">Bedrock settings and account</string>
+    <string name="main_bedrock_account_settings">Bedrock account</string>
+    <string name="main_bedrock_account_settings_summary">Open Bedrock account and settings</string>
+    <string name="main_select_instance">Select instance</string>
+    <string name="bedrock_arm64_required">Bedrock Edition requires a 64-bit ARM device.</string>
+    <string name="developer_mode_enabled">Developer mode enabled.</string>
     <string name="main_task_menu">Task Menu</string>
     <!--  Download  -->
     <string name="download_category_game">Game</string>
@@ -491,6 +500,7 @@
     <string name="account_refresh_failed_skip">Skip Refresh</string>
     <string name="account_refresh_failed_retry">Refresh Again</string>
     <string name="account_type_microsoft">Microsoft</string>
+    <string name="account_type_ely_by">Ely.by</string>
     <string name="account_type_local">Offline</string>
     <string name="account_add_new_server">Add Auth Server</string>
     <string name="account_add_new_server_button">Add Auth</string>

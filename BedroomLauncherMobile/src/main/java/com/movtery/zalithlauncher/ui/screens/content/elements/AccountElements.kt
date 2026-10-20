@@ -449,6 +449,7 @@ fun AccountItem(
 fun LoginMenuDialog(
     onDismissRequest: () -> Unit,
     onMicrosoftLogin: () -> Unit,
+    onElyByLogin: () -> Unit,
     onLocalLogin: () -> Unit,
     authServers: List<AuthServer>,
     onAuthServerLogin: (server: AuthServer) -> Unit,
@@ -499,6 +500,14 @@ fun LoginMenuDialog(
                                 title = stringResource(R.string.account_type_microsoft),
                                 onClick = {
                                     onMicrosoftLogin()
+                                    onDismissRequest()
+                                }
+                            )
+                            LoginItem(
+                                modifier = Modifier.fillMaxWidth(),
+                                title = stringResource(R.string.account_type_ely_by),
+                                onClick = {
+                                    onElyByLogin()
                                     onDismissRequest()
                                 }
                             )
@@ -583,6 +592,7 @@ private fun PreviewLoginMenuDialog() {
         LoginMenuDialog(
             onDismissRequest = {},
             onMicrosoftLogin = {},
+            onElyByLogin = {},
             onLocalLogin = {},
             authServers = emptyList(),
             onAuthServerLogin = {},

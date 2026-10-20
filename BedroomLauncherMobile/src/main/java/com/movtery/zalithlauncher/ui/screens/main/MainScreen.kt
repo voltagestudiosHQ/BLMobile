@@ -126,6 +126,11 @@ fun MainScreen(
     screenBackStackModel: ScreenBackStackViewModel,
     eventViewModel: EventViewModel,
     modpackImportViewModel: ModpackImportViewModel,
+    isBedrockSelected: Boolean,
+    onSelectBedrock: (Boolean) -> Unit,
+    onLaunchBedrock: () -> Unit,
+    onOpenBedrockMods: () -> Unit,
+    onOpenBedrockLauncher: () -> Unit,
     submitError: (ErrorViewModel.ThrowableMessage) -> Unit
 ) {
     val tasks by TaskSystem.tasksFlow.collectAsStateWithLifecycle()
@@ -523,6 +528,11 @@ private fun NavigationUI(
                     LauncherScreen(
                         backStackViewModel = screenBackStackModel,
                         navigateToVersions = navigateToVersions,
+                        isBedrockSelected = isBedrockSelected,
+                        onSelectBedrock = onSelectBedrock,
+                        onLaunchBedrock = onLaunchBedrock,
+                        onOpenBedrockMods = onOpenBedrockMods,
+                        onOpenBedrockLauncher = onOpenBedrockLauncher,
                         onLaunchGame = { version ->
                             eventViewModel.sendEvent(
                                 EventViewModel.Event.Launch.Game(version)

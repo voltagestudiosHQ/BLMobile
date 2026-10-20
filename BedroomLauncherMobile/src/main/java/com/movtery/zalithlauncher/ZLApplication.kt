@@ -48,6 +48,7 @@ import com.movtery.zalithlauncher.utils.device.Architecture
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.writeCrashFile
 import com.tencent.mmkv.MMKV
+import org.levimc.launcher.core.minecraft.LauncherApplication
 import dagger.hilt.android.HiltAndroidApp
 import okio.Path.Companion.toOkioPath
 import kotlin.properties.Delegates
@@ -62,11 +63,11 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         GlobalContext = this
         refreshContext(this)
-        //初始化任务保活控制器，需在任何任务开始前完成初始化
+        // Initialize the task keep-alive controller before any task starts.
         TaskKeepAlive.initialize(this)
 
         Thread.setDefaultUncaughtExceptionHandler { _, th ->
-            //停止所有任务
+            // Stop all tasks.
             TaskSystem.stopAll()
 
             val throwable = if (th is SplashException) th.cause!!
@@ -87,6 +88,7 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
 
         super.onCreate()
         runCatching {
+            LauncherApplication.initialize(this)
             Fishnet.init(this, PathManager.DIR_NATIVE_LOGS.absolutePath)
 
             MMKV.initialize(this)
@@ -98,7 +100,7 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
             initializeData()
             PathManager.DIR_FILES_PRIVATE = getDir("files", MODE_PRIVATE)
             DEVICE_ARCHITECTURE = Architecture.getDeviceArchitecture()
-            //Force x86 lib directory for Asus x86 based zenfones
+            // Force x86 lib directory for Asus x86 based zenfones
             if (Architecture.isx86Device() && Architecture.is32BitsDevice) {
                 val originalJNIDirectory = applicationInfo.nativeLibraryDir
                 applicationInfo.nativeLibraryDir = originalJNIDirectory.take(originalJNIDirectory.lastIndexOf("/")) + "/x86"
@@ -125,7 +127,7 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
             .memoryCache {
                 MemoryCache.Builder()
                     .maxSizeBytes(20L * 1024 * 1024) // 20MB
-                    .weakReferencesEnabled(true) //弱引用
+                    .weakReferencesEnabled(true) // Weak references
                     .build()
             }
             .diskCachePolicy(CachePolicy.ENABLED)

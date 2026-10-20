@@ -65,6 +65,7 @@ import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.context.COPY_LABEL_ACCOUNT_UUID
 import com.movtery.zalithlauncher.game.account.Account
 import com.movtery.zalithlauncher.game.account.AccountsManager
+import com.movtery.zalithlauncher.game.account.ElyBy
 import com.movtery.zalithlauncher.game.account.auth_server.data.AuthServer
 import com.movtery.zalithlauncher.game.account.isAuthServerAccount
 import com.movtery.zalithlauncher.game.account.isMicrosoftAccount
@@ -392,6 +393,13 @@ private fun LoginMenuOperation(
                             )
                         )
                     }
+                },
+                onElyByLogin = {
+                    actions.onIntent(
+                        AccountManageIntent.UpdateOtherLoginOp(
+                            OtherLoginOperation.OnLogin(ElyBy.authServer)
+                        )
+                    )
                 },
                 onLocalLogin = {
                     actions.onIntent(AccountManageIntent.UpdateLocalLoginOp(LocalLoginOperation.Edit))

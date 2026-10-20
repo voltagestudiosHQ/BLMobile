@@ -45,6 +45,13 @@
         tools:targetApi="33"
         tools:ignore="DiscouragedApi">
         <activity
+            android:name="org.levimc.launcher.ui.activities.SplashActivity"
+            tools:node="remove" />
+        <activity
+            android:name="org.levimc.launcher.ui.activities.MainActivity"
+            android:exported="false"
+            tools:replace="android:exported" />
+        <activity
             android:name=".ui.activities.SplashActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.SplashScreen"

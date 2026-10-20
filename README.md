@@ -2,21 +2,22 @@
 ![Downloads](https://img.shields.io/github/downloads/voltageStudiosOfficial/BLMobile/total)
 
 > [!IMPORTANT]
-> Bedroom Launcher is an unofficial modified version of [Zalith Launcher 2](https://github.com/ZalithLauncher/ZalithLauncher2). It is maintained separately from Zalith Launcher 2, LeviLaunchroid, and PojavLauncher.
+> BedroomLauncher Mobile is an unofficial modified version of [Zalith Launcher 2](https://github.com/ZalithLauncher/ZalithLauncher2). It is maintained separately from Zalith Launcher 2, LeviLaunchroid, and PojavLauncher.
 
-**Bedroom Launcher** = Minecraft Java on your phone, but prettier.
+**BedroomLauncher Mobile** = Minecraft Java and Bedrock on your phone, but prettier.
 
-We took PojavLauncher’s engine, slapped on a clean Material 3 UI, and made it actually fun to use. Java works right now. Bedrock support is coming later via LeviLaunchroid so you can play both worlds from one app.
+We took PojavLauncher’s engine, added a clean Material 3 UI, and made it actually fun to use. Bedroom Launcher brings Java Edition and the LeviLaunchroid Bedrock runtime together in one app. The Bedrock integration is under `BedrockModule` and expects compatible LeviLaunchroid sources at `BedrockModule/vendor/LeviLaunchroid`.
 
-**Play nice:** Use Bedroom Launcher with Mojang’s EULA in mind. You need to own Minecraft to play. We also include a **Dev Mode** toggle that bypasses some restrictions for testing/modding — use it responsibly and only with accounts you own.
+**Play nice:** Use BedroomLauncher Mobile with Mojang’s EULA in mind. You need to own Minecraft to play. The launcher has a hidden developer-mode flag, enabled with a gamepad D-pad sequence; it does not bypass account, licensing, or EULA requirements.
 
 Official website coming soon.
 
-Heads up: If you find a “Bedroom Launcher” site that isn’t linked here, it’s fake. We don’t run ads or sketchy mirrors. Stay safe!
+Heads up: If you find a “BedroomLauncher Mobile” site that isn’t linked here, it’s fake. We don’t run ads or sketchy mirrors. Stay safe!
 
 ## ✨ What works now
 
-- **Java Edition**: Full Microsoft login, mods, resource packs, custom JVM flags
+- **Java Edition**: Microsoft and Ely.by account sign-in, mods, resource packs, custom JVM flags
+- **Bedrock Edition**: A peer mode in the launcher with its own account/settings entry points and content manager. It imports LeviLamina `.so` mods, `.mcaddon`/`.mcpack` add-ons, and `.mcworld` worlds. Bedrock uses Microsoft/Xbox authentication; Ely.by accounts are for Java Edition. Requires Android 9+, a 64-bit ARM device, and an official Minecraft Bedrock installation/license.
 - **Modern UI**: Jetpack Compose + Material You. Dark mode, smooth animations, no clutter
 - **Instances**: Separate profiles for each modpack/setup
 
@@ -25,20 +26,21 @@ Heads up: If you find a “Bedroom Launcher” site that isn’t linked here, it
 | Feature | Status |
 | --- | --- |
 | **Java Edition Support** | ✅ Ready to play |
-| **Bedrock Edition Support** | 🔜 Coming via LeviLaunchroid |
-| **ely.by Support** | 🔜 Planned |
-
-Java first, Bedrock next. ely.by login is on the list too.
+| **Bedrock Edition Support** | ✅ LeviLaunchroid runtime integrated |
+| **ely.by Support** | ✅ Yggdrasil account sign-in for Java |
 
 ## 📦 Build it yourself
 
 ### Requirements
 
-* Android Studio **Bumblebee** or newer
+* Recent Android Studio with Android Gradle Plugin 9.3 support
 * Android SDK:
-    * **Minimum:** Android 8.0 Oreo (API 26)
+    * **Minimum:** Android 9.0 (API 28)
+    * **Compile:** API 37
     * **Target:** Android 14 (API 34)
-* JDK 17
+* Android NDK **25.2.9519653** (Java) and **28.2.13676358** (Bedrock), plus CMake **3.22.1**
+* JDK 21 or newer
+* A compatible [LeviLaunchroid](https://github.com/LiteLDev/LeviLaunchroid) source checkout at `BedrockModule/vendor/LeviLaunchroid`
 
 ### Build Steps
 
@@ -60,14 +62,13 @@ cd BLMobile
 
 ## ⚖️ Disclaimer
 
-Unofficial launcher. Not made by or endorsed by Mojang, Microsoft, Levi, LeviLaunchroid, ZalithLauncher2, or ely.by. You need to own Minecraft to play. Dev Mode exists for testing only — you are responsible for complying with Mojang’s EULA. [LeviLaunchroid](https://github.com/LiteLDev/LeviLaunchroid) handles our future Bedrock support and is its own project.
+Unofficial launcher. Not made by or endorsed by Mojang, Microsoft, Levi, LeviLaunchroid, ZalithLauncher2, or ely.by. You need to own Minecraft to play. Bedrock Edition requires a legitimate Android purchase and compatible ARM64 device. The hidden developer-mode flag is enabled with the gamepad sequence above and does not bypass account or licensing requirements.
 
 ---
 
 **License:** GPL-3.0
 
-**Maintainer:** voltage!studios
-
+**Maintainer:** [{voltage!studios}](github.com/voltagestudiosHQ)
 ## Open Source Libraries and Licenses
 
 This software uses the following open source libraries:
@@ -75,6 +76,7 @@ This software uses the following open source libraries:
 | Library | Copyright | License | Official Link |
 | --- | --- | --- | --- |
 | androidx-constraintlayout-compose | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/develop/ui/compose/layouts/constraintlayout) |
+| LeviLaunchroid | Copyright © LeviMC Team and contributors | Apache 2.0 | [Link](https://github.com/LiteLDev/LeviLaunchroid) |
 | androidx-material-icons-core | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/jetpack/androidx/releases/compose-material) |
 | androidx-material-icons-extended | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/jetpack/androidx/releases/compose-material) |
 | ANGLE | Copyright 2018 The ANGLE Project Authors | BSD 3-Clause License | [Link](http://angleproject.org/) |
