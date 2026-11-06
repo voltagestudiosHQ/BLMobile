@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,19 @@ import androidx.compose.ui.graphics.toArgb
 import com.materialkolor.PaletteStyle
 import com.movtery.layer_controller.utils.snap.SnapMode
 import com.movtery.zalithlauncher.BuildKeys
-import com.movtery.zalithlauncher.game.download.assets.platform.Platform
+import com.movtery.zalithlauncher.game.download.addon.platform.Platform
 import com.movtery.zalithlauncher.game.path.GamePathManager
 import com.movtery.zalithlauncher.game.version.installed.GraphicsApi
+import com.movtery.zalithlauncher.setting.enums.ActionMenuSide
 import com.movtery.zalithlauncher.setting.enums.AppLanguage
 import com.movtery.zalithlauncher.setting.enums.BackgroundBlur
 import com.movtery.zalithlauncher.setting.enums.DarkMode
+import com.movtery.zalithlauncher.setting.enums.FpsDisplayMode
 import com.movtery.zalithlauncher.setting.enums.GamepadInputMode
 import com.movtery.zalithlauncher.setting.enums.GestureActionType
-import com.movtery.zalithlauncher.setting.enums.HomePageType
 import com.movtery.zalithlauncher.setting.enums.MirrorSourceType
 import com.movtery.zalithlauncher.setting.enums.MouseControlMode
+import com.movtery.zalithlauncher.setting.enums.MouseTouchBlockMode
 import com.movtery.zalithlauncher.setting.enums.ResolutionRule
 import com.movtery.zalithlauncher.ui.control.HotbarRule
 import com.movtery.zalithlauncher.ui.control.gamepad.JoystickMode
@@ -43,7 +45,7 @@ import com.movtery.zalithlauncher.ui.control.mouse.CENTER_HOTSPOT
 import com.movtery.zalithlauncher.ui.control.mouse.CursorHotspot
 import com.movtery.zalithlauncher.ui.control.mouse.LEFT_TOP_HOTSPOT
 import com.movtery.zalithlauncher.ui.theme.ColorThemeType
-import com.movtery.zalithlauncher.utils.animation.TransitionAnimationType
+
 
 object AllSettings : SettingsRegistry() {
     //Renderer
@@ -51,6 +53,16 @@ object AllSettings : SettingsRegistry() {
      * 全局渲染器
      */
     val renderer = stringSetting("renderer", "")
+
+    /**
+     * 为渲染器插件叠加 SFPEW 兼容层
+     */
+    val sfpewPluginLayer = boolSetting("sfpewPluginLayer", false)
+
+    /**
+     * SFPEW 宽松上下文模式
+     */
+    val sfpewRelaxedContext = boolSetting("sfpewRelaxedContext", false)
 
     /**
      * Vulkan 驱动器
@@ -88,14 +100,14 @@ object AllSettings : SettingsRegistry() {
     val gameFullScreen = boolSetting("gameFullScreen", true)
 
     /**
-     * 使用 SurfaceView 渲染
-     */
-    val useSurfaceView = boolSetting("useSurfaceView", false)
-
-    /**
      * 持续性能模式
      */
     val sustainedPerformance = boolSetting("sustainedPerformance", false)
+
+    /**
+     * 游戏运行时请求系统切换到同分辨率最高刷新率档位（关闭则回落系统自适应刷新）
+     */
+    val requestMaxRefreshRate = boolSetting("requestMaxRefreshRate", true)
 
     /**
      * 使用系统的 Vulkan 驱动
@@ -245,6 +257,11 @@ object AllSettings : SettingsRegistry() {
     val mouseControlMode = enumSetting("mouseControlMode", MouseControlMode.SLIDE)
 
     /**
+     * 阻止半屏触摸虚拟鼠标
+     */
+    val mouseTouchBlockMode = enumSetting("mouseTouchBlockMode", MouseTouchBlockMode.NONE)
+
+    /**
      * 鼠标控制长按延迟
      */
     val mouseLongPressDelay = intSetting("mouseLongPressDelay", 300, 100..1000)
@@ -263,6 +280,11 @@ object AllSettings : SettingsRegistry() {
      * SDL 下是否允许自动唤起输入法
      */
     val sdlAutoShowIme = boolSetting("sdlAutoShowIme", true)
+
+    /**
+     * 输入时是否默认弹出游戏画面放大镜
+     */
+    val imeMagnifierAutoShow = boolSetting("imeMagnifierAutoShow", true)
 
     /**
      * 手柄输入模式（映射虚拟按键 / SDL 直通）
@@ -396,19 +418,19 @@ object AllSettings : SettingsRegistry() {
     val launcherFestivalEffects = boolSetting("launcherFestivalEffects", true)
 
     /**
-     * 动画倍速
+     * 启用页面切换动画
      */
-    val launcherAnimateSpeed = intSetting("launcherAnimateSpeed", 5, 0..10)
+    val launcherSwapAnimEnabled = boolSetting("launcherSwapAnimEnabled", true)
 
     /**
-     * 动画幅度
+     * 动画速度
      */
-    val launcherAnimateExtent = intSetting("launcherAnimateExtent", 5, 0..10)
+    val launcherAnimateSpeedLevel = intSetting("launcherAnimateSpeedLevel", 10, 1..30)
 
     /**
-     * 启动器页面切换动画类型
+     * 主界面操作菜单的停泊侧
      */
-    val launcherSwapAnimateType = enumSetting("launcherSwapAnimateType", TransitionAnimationType.JELLY_BOUNCE)
+    val launcherActionMenuSide = enumSetting("launcherActionMenuSide", ActionMenuSide.END)
 
     /**
      * 启动器背景元素不透明度
@@ -431,16 +453,6 @@ object AllSettings : SettingsRegistry() {
     val backgroundBlurType = enumSetting("backgroundBlurType", BackgroundBlur.Background)
 
     /**
-     * 启动器主页类型
-     */
-    val homePageType = enumSetting("homePageType", HomePageType.Blank)
-
-    /**
-     * 启动器网络主页下载地址
-     */
-    val homePageURL = stringSetting("homePageURL", "")
-
-    /**
      * 启动器上次检查更新时，用户选择忽略的版本号
      */
     val lastIgnoredVersion = intSetting("lastIgnoredVersion", null)
@@ -451,14 +463,23 @@ object AllSettings : SettingsRegistry() {
     val launcherLogRetentionDays = intSetting("launcherLogRetentionDays", 7, 1..14)
 
     /**
-     * 游戏内容镜像源
+     * 游戏内容下载源
      */
-    val gameDownloadSource = enumSetting("gameDownloadSource", MirrorSourceType.AUTO)
+    val gameDownloadSource = enumSetting(
+        "gameDownloadSource",
+        MirrorSourceType.AUTO,
+        MirrorSourceType.LEGACY_NAMES
+    )
 
     /**
-     * 资源平台镜像源
+     * 资源平台下载源
      */
-    val assetPlatformSource = enumSetting("assetPlatformSource", MirrorSourceType.AUTO)
+    val addonPlatformSource = enumSetting(
+        //历史遗留键名，保留原值以兼容旧版本数据
+        "assetPlatformSource",
+        MirrorSourceType.AUTO,
+        MirrorSourceType.LEGACY_NAMES
+    )
 
     //Control
     /**
@@ -486,6 +507,11 @@ object AllSettings : SettingsRegistry() {
      * 在游戏菜单悬浮窗上显示帧率
      */
     val showFPS = boolSetting("showFPS", true)
+
+    /**
+     * 游戏内帧率的展示模式
+     */
+    val fpsDisplayMode = enumSetting("fpsDisplayMode", FpsDisplayMode.NUMBER)
 
     /**
      * 在游戏菜单悬浮窗上显示内存
@@ -591,6 +617,11 @@ object AllSettings : SettingsRegistry() {
      * 是否在打开启动器时，根据特定的运行游戏次数，显示赞助支持弹窗
      */
     val showSponsorship = boolSetting("showSponsorship", true)
+
+    /**
+     * 上次已展示结算报告的上月赞助者月份标识
+     */
+    val lastSponsorReportMonth = stringSetting("lastSponsorReportMonth", "")
 
     /**
      * 搜索模组的初始搜索平台

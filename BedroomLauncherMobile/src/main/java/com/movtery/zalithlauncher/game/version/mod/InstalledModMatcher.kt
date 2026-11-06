@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 
 package com.movtery.zalithlauncher.game.version.mod
 
-import com.movtery.zalithlauncher.game.download.assets.platform.Platform
-import com.movtery.zalithlauncher.game.download.assets.platform.getCFFilesByFingerprints
-import com.movtery.zalithlauncher.game.download.assets.platform.getModrinthVersBySha1
+import com.movtery.zalithlauncher.game.download.addon.platform.Platform
+import com.movtery.zalithlauncher.game.download.addon.platform.getCFFilesByFingerprints
+import com.movtery.zalithlauncher.game.download.addon.platform.getModrinthVersBySha1
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CancellationException

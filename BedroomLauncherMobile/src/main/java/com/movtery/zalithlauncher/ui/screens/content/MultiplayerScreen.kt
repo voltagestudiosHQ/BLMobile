@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -48,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.movtery.zalithlauncher.R
 import com.movtery.zalithlauncher.notification.NotificationManager
@@ -58,12 +56,14 @@ import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.terracotta.Terracotta
 import com.movtery.zalithlauncher.ui.androidText
 import com.movtery.zalithlauncher.ui.base.BaseScreen
+import com.movtery.zalithlauncher.ui.components.AnimatedDirection
 import com.movtery.zalithlauncher.ui.components.AnimatedRow
 import com.movtery.zalithlauncher.ui.components.BackgroundCard
 import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.components.NotificationCheck
 import com.movtery.zalithlauncher.ui.components.OwnOutlinedTextField
 import com.movtery.zalithlauncher.ui.components.SimpleAlertDialog
+import com.movtery.zalithlauncher.ui.components.animated
 import com.movtery.zalithlauncher.ui.components.influencedByBackgroundColor
 import com.movtery.zalithlauncher.ui.components.verticalScrollWithBar
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
@@ -91,22 +91,22 @@ fun MultiplayerScreen(
         AnimatedRow(
             modifier = Modifier.fillMaxSize(),
             isVisible = isVisible,
-            delayIncrement = 0 //同时进行
-        ) { scope ->
-            AnimatedItem(scope) { xOffset ->
+            stagger = false, //同时进行
+        ) {
+            AnimatedItem { ctx ->
                 TutorialMenu(
                     modifier = Modifier
                         .weight(0.5f)
-                        .offset { IntOffset(x = -xOffset.roundToPx(), y = 0) }
+                        .animated(ctx, from = AnimatedDirection.Left)
                         .padding(start = 12.dp)
                 )
             }
 
-            AnimatedItem(scope) { xOffset ->
+            AnimatedItem { ctx ->
                 MainMenu(
                     modifier = Modifier
                         .weight(0.5f)
-                        .offset { IntOffset(x = xOffset.roundToPx(), y = 0) }
+                        .animated(ctx, from = AnimatedDirection.Right)
                         .padding(end = 12.dp),
                     eventViewModel = eventViewModel,
                     onShareLogs = {

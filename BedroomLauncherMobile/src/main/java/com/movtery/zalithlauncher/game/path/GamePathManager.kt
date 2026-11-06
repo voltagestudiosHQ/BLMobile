@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,9 +62,9 @@ object GamePathManager {
     val currentPath = _currentPath.asStateFlow()
 
     /**
-     * 当前游戏路径
+     * 启动器默认游戏目录
      */
-    fun getCurrentPath(): String = File(_currentPath.value).absolutePath
+    fun getDefaultPath(): String = defaultGamePath
 
     /**
      * 当前用户路径

@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +70,10 @@ final class SdlImeController {
     }
 
     static void reset() {
+        post(SdlImeController::doReset);
+    }
+
+    private static void doReset() {
         if (mEdit != null) {
             ViewParent parent = mEdit.getParent();
             if (parent instanceof ViewGroup) {
@@ -111,7 +115,7 @@ final class SdlImeController {
         if (visible && isUnwantedImeVisible()) {
             // IME 在通道关闭后自行弹出时强制按回
             Log.w(TAG, "IME: unwanted visibility while text input channel is closed, forcing hide");
-            forceHideIme();
+            SDLActivity.commandHandler.post(SdlImeController::forceHideIme);
             return;
         }
         if (mKeyboardShown == visible) {
@@ -175,6 +179,7 @@ final class SdlImeController {
         if (!mEdit.hasFocus()) {
             mEdit.requestFocus();
         }
+        SdlBridge.requestComposeFocus();
 
         if (mKeyboardShown) {
             Log.i(TAG, "IME: already visible, show by " + source + " ignored");

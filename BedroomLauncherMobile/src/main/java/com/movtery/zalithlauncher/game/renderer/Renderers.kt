@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ package com.movtery.zalithlauncher.game.renderer
 import com.movtery.zalithlauncher.game.renderer.renderers.FreedrenoRenderer
 import com.movtery.zalithlauncher.game.renderer.renderers.GL4ESRenderer
 import com.movtery.zalithlauncher.game.renderer.renderers.KopperZinkRenderer
+import com.movtery.zalithlauncher.game.renderer.renderers.MobileGluesRenderer
 import com.movtery.zalithlauncher.game.renderer.renderers.NGGL4ESRenderer
 import com.movtery.zalithlauncher.game.renderer.renderers.PanfrostRenderer
 import com.movtery.zalithlauncher.game.renderer.renderers.VirGLRenderer
@@ -51,6 +52,7 @@ object Renderers {
             NGGL4ESRenderer,
             GL4ESRenderer,
             KopperZinkRenderer,
+            MobileGluesRenderer,
             VirGLRenderer,
             FreedrenoRenderer,
             PanfrostRenderer
@@ -61,6 +63,15 @@ object Renderers {
      * 获取当前的渲染器列表
      */
     fun getRenderers(): List<RendererInterface> = renderers
+
+    /**
+     * 获取全部渲染器的旧配置命名空间到当前唯一标识的映射，用于配置迁移
+     */
+    fun getLegacyRendererIds(): Map<String, String> = buildMap {
+        renderers.filterIsInstance<ConfigurableRenderer>().forEach { renderer ->
+            renderer.legacyConfigKeys.forEach { put(it, renderer.getUniqueIdentifier()) }
+        }
+    }
 
     /**
      * 加入一些渲染器

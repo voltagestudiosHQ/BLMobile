@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
@@ -65,6 +66,9 @@ fun FloatingBall(
     val currentPosition by rememberUpdatedState(position)
     val currentOnClick by rememberUpdatedState(onClick)
     val currentOnSavePos by rememberUpdatedState(onSavePos)
+
+    var dragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableStateOf(Offset.Zero) }
 
     //在首次启动时，将悬浮球放到屏幕的 TopCenter
     //确保这个行为只触发一次
@@ -95,7 +99,7 @@ fun FloatingBall(
         val parentHeight by rememberUpdatedState(constraints.maxHeight)
 
         Surface(
-            modifier = modifier
+            modifier = Modifier
                 .onSizeChanged { size ->
                     ballSize = size
                     if (isInitialized || currentPosition != Offset.Zero) return@onSizeChanged
@@ -105,11 +109,12 @@ fun FloatingBall(
                     onPositionChanged(Offset(positionX, positionY))
                 }
                 .offset {
+                    val renderPosition = if (dragging) dragPosition else currentPosition
                     val maxX = (parentWidth - ballSize.width).coerceAtLeast(0)
                     val maxY = (parentHeight - ballSize.height).coerceAtLeast(0)
                     IntOffset(
-                        currentPosition.x.roundToInt().coerceIn(0, maxX),
-                        currentPosition.y.roundToInt().coerceIn(0, maxY)
+                        renderPosition.x.roundToInt().coerceIn(0, maxX),
+                        renderPosition.y.roundToInt().coerceIn(0, maxY)
                     )
                 }
                 .pointerInput(Unit) {
@@ -127,7 +132,8 @@ fun FloatingBall(
                             onPositionChanged(Offset(clampedX, clampedY))
                         }
 
-                        drag(down.id) { change ->
+                        //drag 返回 false 表示手势被取消，此时不触发点击与保存
+                        val completed = drag(down.id) { change ->
                             val delta = change.positionChange()
                             val distanceFromStart = (change.position - startPosition).getDistance()
 
@@ -135,29 +141,42 @@ fun FloatingBall(
                                 //超出了拖动检测距离，说明是真的在进行拖动
                                 //标记当前为拖动，避免松开手指后，判定为点击事件
                                 isDragging = true
+                                dragging = true
+                                dragPosition = Offset(clampedX, clampedY)
                             }
 
                             if (isDragging) { //只有在拖动的情况下，才会变更位置
                                 val deltaX = if (isRtl) -delta.x else delta.x
-                                val newX = currentPosition.x + deltaX
-                                val newY = currentPosition.y + delta.y
-                                val positionX =
-                                    newX.coerceIn(0f, (parentWidth - ballSize.width).toFloat())
-                                val positionY =
+                                val newX = dragPosition.x + deltaX
+                                val newY = dragPosition.y + delta.y
+                                dragPosition = Offset(
+                                    newX.coerceIn(0f, (parentWidth - ballSize.width).toFloat()),
                                     newY.coerceIn(0f, (parentHeight - ballSize.height).toFloat())
-                                onPositionChanged(Offset(positionX, positionY))
+                                )
                             }
                             change.consume()
                         }
 
-                        if (isDragging) {
-                            currentOnSavePos()
+                        val upConsumed = if (completed) {
+                            //复核抬起事件是否已被上层消费
+                            awaitPointerEvent(PointerEventPass.Final)
+                                .changes.firstOrNull { it.id == down.id }?.isConsumed ?: true
                         } else {
+                            true
+                        }
+                        if (isDragging) {
+                            //拖动结束才一次性同步位置
+                            onPositionChanged(dragPosition)
+                            if (!upConsumed) {
+                                currentOnSavePos()
+                            }
+                            dragging = false
+                        } else if (!upConsumed) {
                             //非拖动事件，判定为一次点击
                             currentOnClick()
                         }
                     }
-                },
+                }.then(modifier),
             color = color,
             contentColor = contentColor,
             shape = shape

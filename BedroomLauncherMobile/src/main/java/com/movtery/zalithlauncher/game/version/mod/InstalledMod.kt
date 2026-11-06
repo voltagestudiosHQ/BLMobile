@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,10 @@
 package com.movtery.zalithlauncher.game.version.mod
 
 import android.os.Parcelable
-import com.movtery.zalithlauncher.game.download.assets.platform.Platform
-import com.movtery.zalithlauncher.game.download.assets.platform.PlatformVersion
-import com.movtery.zalithlauncher.game.download.assets.platform.curseforge.models.CurseForgeFile
-import com.movtery.zalithlauncher.game.download.assets.platform.modrinth.models.ModrinthVersion
+import com.movtery.zalithlauncher.game.download.addon.platform.Platform
+import com.movtery.zalithlauncher.game.download.addon.platform.PlatformVersion
+import com.movtery.zalithlauncher.game.download.addon.platform.curseforge.models.CurseForgeFile
+import com.movtery.zalithlauncher.game.download.addon.platform.modrinth.models.ModrinthVersion
 import kotlinx.parcelize.Parcelize
 
 /**

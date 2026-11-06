@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.BoxWithConstraints
-
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -74,6 +73,9 @@ class ControlEditorActivity : BaseAppCompatActivity() {
         //初始化控制布局
         editorViewModel.initLayout(layout)
 
+        //加载样式收藏柜
+        editorViewModel.styleCabinet.load()
+
         //绑定返回键按下事件，防止直接退出导致控制布局丢失所有变更
         //提醒用户保存并退出
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -94,8 +96,7 @@ class ControlEditorActivity : BaseAppCompatActivity() {
                     contentColor = onBackgroundColor()
                 ) {
                     BoxWithConstraints(
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Background(
                             modifier = Modifier.fillMaxSize(),

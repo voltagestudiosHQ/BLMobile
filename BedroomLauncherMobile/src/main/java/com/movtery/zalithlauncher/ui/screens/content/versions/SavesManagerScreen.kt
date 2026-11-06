@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 package com.movtery.zalithlauncher.ui.screens.content.versions
 
+import android.content.Context
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.Orientation
@@ -26,14 +27,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,7 +44,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +54,7 @@ import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.nonInteractiveScrollbar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,7 +75,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -93,6 +91,7 @@ import com.movtery.zalithlauncher.game.version.saves.SaveData
 import com.movtery.zalithlauncher.game.version.saves.isCompatible
 import com.movtery.zalithlauncher.game.version.saves.parseLevelDatFile
 import com.movtery.zalithlauncher.game.version.saves.unpackSaveZip
+import com.movtery.zalithlauncher.path.PathManager
 import com.movtery.zalithlauncher.ui.androidText
 import com.movtery.zalithlauncher.ui.base.BaseScreen
 import com.movtery.zalithlauncher.ui.components.CardTitleLayout
@@ -105,7 +104,9 @@ import com.movtery.zalithlauncher.ui.components.ScalingLabel
 import com.movtery.zalithlauncher.ui.components.SimpleAlertDialog
 import com.movtery.zalithlauncher.ui.components.SimpleTextInputField
 import com.movtery.zalithlauncher.ui.components.TooltipIconButton
+import com.movtery.zalithlauncher.ui.components.animated
 import com.movtery.zalithlauncher.ui.components.fadeEdge
+import com.movtery.zalithlauncher.ui.components.rememberAnimatedContext
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.TitledNavKey
@@ -116,6 +117,7 @@ import com.movtery.zalithlauncher.ui.screens.content.elements.rememberMultipleUr
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.FileNameInputDialog
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.LoadingState
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.MinecraftColorTextNormal
+import com.movtery.zalithlauncher.ui.screens.content.versions.elements.SavesCompressOperation
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.SavesFilter
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.SavesOperation
 import com.movtery.zalithlauncher.ui.screens.content.versions.elements.filterSaves
@@ -123,9 +125,11 @@ import com.movtery.zalithlauncher.ui.screens.content.versions.layouts.VersionChu
 import com.movtery.zalithlauncher.ui.theme.itemColor
 import com.movtery.zalithlauncher.ui.theme.onItemColor
 import com.movtery.zalithlauncher.utils.animation.getAnimateTween
-import com.movtery.zalithlauncher.utils.animation.swapAnimateDpAsState
 import com.movtery.zalithlauncher.utils.copyText
+import com.movtery.zalithlauncher.utils.file.shareFile
+import com.movtery.zalithlauncher.utils.file.zipDirectory
 import com.movtery.zalithlauncher.utils.formatDate
+import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.viewmodel.ErrorViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -138,6 +142,8 @@ import java.io.File
 import java.util.Date
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+
+private const val TAG = "SavesManagerScreen"
 
 private class SavesManageViewModel(
     val minecraftVersion: String,
@@ -157,6 +163,46 @@ private class SavesManageViewModel(
 
     var savesState by mutableStateOf<LoadingState>(LoadingState.Loading)
         private set
+
+    var compressOperation by mutableStateOf<SavesCompressOperation>(SavesCompressOperation.None)
+        private set
+
+    private var compressJob: Job? = null
+
+    fun updateCompressOperation(operation: SavesCompressOperation) {
+        compressOperation = operation
+    }
+
+    /**
+     * 将指定的存档压缩为 zip 压缩包并存放到缓存目录中，压缩完成后分享压缩包文件
+     */
+    fun compressAndShare(saveData: SaveData, context: Context) {
+        compressJob?.cancel()
+        compressJob = viewModelScope.launch {
+            try {
+                compressOperation = SavesCompressOperation.Compressing(saveData)
+                runCatching {
+                    val outputFile = withContext(Dispatchers.IO) {
+                        File(PathManager.DIR_CACHE_SAVE_EXPORTER, "${saveData.saveFile.name}.zip").also {
+                            FileUtils.deleteQuietly(it)
+                            zipDirectory(saveData.saveFile, it)
+                        }
+                    }
+                    compressOperation = SavesCompressOperation.None
+                    withContext(Dispatchers.Main) {
+                        shareFile(context, outputFile)
+                    }
+                }.onFailure { th ->
+                    if (th is CancellationException) throw th
+                    compressOperation = SavesCompressOperation.Error(th)
+                }
+            } finally {
+                if (compressJob === coroutineContext[Job]) {
+                    compressJob = null
+                }
+            }
+        }
+    }
 
     private var job: Job? = null
 
@@ -290,88 +336,101 @@ fun SavesManagerScreen(
     ) { isVisible ->
         val viewModel = rememberSavesManageViewModel(minecraftVersion, savesDir, version)
 
-        val yOffset by swapAnimateDpAsState(
-            targetValue = (-40).dp,
-            swapIn = isVisible
-        )
+        val ctx = rememberAnimatedContext(isVisible = isVisible)
 
         VersionChunkBackground(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(all = 12.dp)
-                .offset { IntOffset(x = 0, y = yOffset.roundToPx()) },
+                .animated(ctx),
             paddingValues = PaddingValues()
         ) {
             val operationScope = rememberCoroutineScope()
 
-            when (viewModel.savesState) {
-                is LoadingState.None -> {
-                    var savesOperation by remember { mutableStateOf<SavesOperation>(SavesOperation.None) }
-                    fun runProgress(task: () -> Unit) {
-                        operationScope.launch(Dispatchers.IO) {
-                            savesOperation = SavesOperation.Progress
-                            task()
-                            savesOperation = SavesOperation.None
-                            viewModel.refresh()
-                        }
-                    }
-                    SaveOperation(
-                        savesOperation = savesOperation,
-                        savesDir = savesDir,
-                        updateOperation = { savesOperation = it },
-                        quickPlay = { saveName ->
-                            onQuickPlay(version, saveName)
-                        },
-                        renameSave = { saveData, newName ->
-                            runProgress {
-                                saveData.saveFile.renameTo(File(savesDir, newName))
-                            }
-                        },
-                        backupSave = { saveData, name ->
-                            runProgress {
-                                FileUtils.copyDirectory(saveData.saveFile, File(savesDir, name))
-                            }
-                        },
-                        deleteSave = { saveData ->
-                            runProgress {
-                                FileUtils.deleteQuietly(saveData.saveFile)
+            PullToRefreshBox(
+                modifier = Modifier.fillMaxSize(),
+                isRefreshing = false,
+                enabled = viewModel.savesState !is LoadingState.Loading,
+                onRefresh = viewModel::refresh,
+            ) {
+                when (viewModel.savesState) {
+                    is LoadingState.None -> {
+                        val context = LocalContext.current
+                        var savesOperation by remember { mutableStateOf<SavesOperation>(SavesOperation.None) }
+                        fun runProgress(task: () -> Unit) {
+                            operationScope.launch(Dispatchers.IO) {
+                                savesOperation = SavesOperation.Progress
+                                task()
+                                savesOperation = SavesOperation.None
+                                viewModel.refresh()
                             }
                         }
-                    )
-
-                    Column {
-                        SavesActionsHeader(
-                            modifier = Modifier.fillMaxWidth(),
-                            savesFilter = viewModel.savesFilter,
-                            onSavesFilterChange = { viewModel.updateFilter(it) },
-                            supportedSortByEnums = viewModel.supportedSortByEnums,
-                            sortByEnum = viewModel.sortByEnum,
-                            onSortByChanged = { viewModel.updateSortBy(it) },
-                            isAscending = viewModel.isAscending,
-                            onToggleSortOrder = { viewModel.updateSortOrder() },
+                        SaveOperation(
+                            savesOperation = savesOperation,
                             savesDir = savesDir,
-                            swapToDownload = swapToDownload,
-                            refreshSaves = { viewModel.refresh() },
-                            submitError = submitError
+                            updateOperation = { savesOperation = it },
+                            quickPlay = { saveName ->
+                                onQuickPlay(version, saveName)
+                            },
+                            renameSave = { saveData, newName ->
+                                runProgress {
+                                    saveData.saveFile.renameTo(File(savesDir, newName))
+                                }
+                            },
+                            backupSave = { saveData, name ->
+                                runProgress {
+                                    FileUtils.copyDirectory(saveData.saveFile, File(savesDir, name))
+                                }
+                            },
+                            deleteSave = { saveData ->
+                                runProgress {
+                                    FileUtils.deleteQuietly(saveData.saveFile)
+                                }
+                            }
                         )
 
-                        SavesList(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            savesList = viewModel.filteredSaves,
-                            quickPlay = quickPlay,
-                            minecraftVersion = minecraftVersion,
-                            updateOperation = { savesOperation = it }
+                        SaveCompressOperation(
+                            operation = viewModel.compressOperation,
+                            updateOperation = viewModel::updateCompressOperation
                         )
+
+                        Column {
+                            SavesActionsHeader(
+                                modifier = Modifier.fillMaxWidth(),
+                                savesFilter = viewModel.savesFilter,
+                                onSavesFilterChange = { viewModel.updateFilter(it) },
+                                supportedSortByEnums = viewModel.supportedSortByEnums,
+                                sortByEnum = viewModel.sortByEnum,
+                                onSortByChanged = { viewModel.updateSortBy(it) },
+                                isAscending = viewModel.isAscending,
+                                onToggleSortOrder = { viewModel.updateSortOrder() },
+                                savesDir = savesDir,
+                                swapToDownload = swapToDownload,
+                                refreshSaves = { viewModel.refresh() },
+                                submitError = submitError
+                            )
+
+                            SavesList(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                savesList = viewModel.filteredSaves,
+                                quickPlay = quickPlay,
+                                minecraftVersion = minecraftVersion,
+                                updateOperation = { savesOperation = it },
+                                onCompressShare = { saveData ->
+                                    viewModel.compressAndShare(saveData, context)
+                                }
+                            )
+                        }
                     }
-                }
-                is LoadingState.Loading -> {
-                    Box(
-                        Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LoadingIndicator()
+                    is LoadingState.Loading -> {
+                        Box(
+                            Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LoadingIndicator()
+                        }
                     }
                 }
             }
@@ -522,7 +581,8 @@ private fun SavesList(
     savesList: List<SaveData>?,
     quickPlay: VersionInfo.QuickPlay,
     minecraftVersion: String,
-    updateOperation: (SavesOperation) -> Unit
+    updateOperation: (SavesOperation) -> Unit,
+    onCompressShare: (SaveData) -> Unit = {}
 ) {
     savesList?.let { list ->
         if (list.isNotEmpty()) {
@@ -542,7 +602,8 @@ private fun SavesList(
                         saveData = saveData,
                         quickPlay = quickPlay,
                         minecraftVersion = minecraftVersion,
-                        updateOperation = updateOperation
+                        updateOperation = updateOperation,
+                        onCompressShare = onCompressShare
                     )
                 }
             }
@@ -571,7 +632,6 @@ private fun SavesList(
  * @param saveData 存档信息
  * @param minecraftVersion 当前版本的 Minecraft 版本
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun SaveItemLayout(
     modifier: Modifier = Modifier,
@@ -580,6 +640,7 @@ private fun SaveItemLayout(
     minecraftVersion: String,
     onClick: () -> Unit = {},
     updateOperation: (SavesOperation) -> Unit = {},
+    onCompressShare: (SaveData) -> Unit = {},
     shape: Shape = MaterialTheme.shapes.large,
     itemColor: Color = itemColor(),
     itemContentColor: Color = onItemColor(),
@@ -723,6 +784,9 @@ private fun SaveItemLayout(
                     onBackupClick = {
                         updateOperation(SavesOperation.BackupSave(saveData))
                     },
+                    onCompressShareClick = {
+                        onCompressShare(saveData)
+                    },
                     onDeleteClick = {
                         updateOperation(SavesOperation.DeleteSave(saveData))
                     }
@@ -848,6 +912,7 @@ private fun SaveOperationMenu(
     onQuickPlayClick: () -> Unit = {},
     onRenameClick: () -> Unit = {},
     onBackupClick: () -> Unit = {},
+    onCompressShareClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
     Row {
@@ -920,6 +985,21 @@ private fun SaveOperationMenu(
                 },
                 onClick = {
                     onBackupClick()
+                    menuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                enabled = saveValid,
+                text = { Text(text = stringResource(R.string.saves_manage_compress_share)) },
+                leadingIcon = {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        painter = painterResource(R.drawable.ic_folder_zip_filled),
+                        contentDescription = stringResource(R.string.saves_manage_compress_share)
+                    )
+                },
+                onClick = {
+                    onCompressShareClick()
                     menuExpanded = false
                 }
             )
@@ -1002,6 +1082,34 @@ private fun SaveOperation(
                 onConfirm = {
                     deleteSave(saveData)
                     updateOperation(SavesOperation.None)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SaveCompressOperation(
+    operation: SavesCompressOperation,
+    updateOperation: (SavesCompressOperation) -> Unit
+) {
+    when (operation) {
+        is SavesCompressOperation.None -> {}
+        is SavesCompressOperation.Compressing -> {
+            ProgressDialog(
+                text = stringResource(
+                    R.string.saves_manage_compressing, operation.saveData.saveFile.name
+                )
+            )
+        }
+        is SavesCompressOperation.Error -> {
+            val th = operation.throwable
+            Logger.error(TAG, "An exception occurred while compressing the save.", th)
+            SimpleAlertDialog(
+                title = stringResource(R.string.saves_manage_export_failed),
+                text = th.localizedMessage ?: th.message ?: th::class.qualifiedName ?: "Unknown error",
+                onDismiss = {
+                    updateOperation(SavesCompressOperation.None)
                 }
             )
         }

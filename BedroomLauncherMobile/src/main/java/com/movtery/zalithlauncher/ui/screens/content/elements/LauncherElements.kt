@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,9 @@ package com.movtery.zalithlauncher.ui.screens.content.elements
 
 import android.app.Activity
 import android.net.Uri
+import android.os.Build
 import android.os.Parcelable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,16 +43,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.ImageLoader
@@ -72,6 +78,7 @@ import com.movtery.zalithlauncher.game.plugin.natives.NativePluginManager
 import com.movtery.zalithlauncher.game.plugin.renderer.RendererPluginManager
 import com.movtery.zalithlauncher.game.renderer.RendererInterface
 import com.movtery.zalithlauncher.game.renderer.Renderers
+import com.movtery.zalithlauncher.game.renderer.isSfpewConfiguredFor
 import com.movtery.zalithlauncher.game.version.installed.Version
 import com.movtery.zalithlauncher.game.version.installed.hasVulkanBackend
 import com.movtery.zalithlauncher.game.version.installed.utils.isBiggerVer
@@ -95,23 +102,17 @@ import com.movtery.zalithlauncher.utils.checkStoragePermissions
 import com.movtery.zalithlauncher.utils.file.InvalidFilenameException
 import com.movtery.zalithlauncher.utils.file.checkFilenameValidity
 import com.movtery.zalithlauncher.utils.hasStoragePermission
+import com.movtery.zalithlauncher.utils.image.isGifFile
 import com.movtery.zalithlauncher.viewmodel.BackgroundViewModel
 import com.movtery.zalithlauncher.viewmodel.ErrorViewModel
 import com.movtery.zalithlauncher.viewmodel.EventViewModel
 import com.movtery.zalithlauncher.viewmodel.LaunchGameViewModel
-import com.movtery.zalithlauncher.viewmodel.LocalBackgroundViewModel
 import com.movtery.zalithlauncher.viewmodel.sendToast
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import java.io.File
-import kotlin.math.sqrt
 
 @Parcelize
 sealed interface QuickPlay : Parcelable {
@@ -224,11 +225,7 @@ fun LaunchGameOperation(
         is LaunchGameOperation.NoAccount -> {
             LaunchedEffect(Unit) {
                 eventViewModel.sendToast(androidText(R.string.game_launch_no_account))
-                val isOffline = AccountsManager.isOffline.value
-                toAccountManageScreen(
-                    if (isOffline) FirstLoginMenu.MICROSOFT
-                    else FirstLoginMenu.NORMAL
-                )
+                toAccountManageScreen(FirstLoginMenu.NORMAL)
                 launchGameViewModel.updateOperation(LaunchGameOperation.None)
             }
         }
@@ -311,9 +308,13 @@ fun LaunchGameOperation(
 
                 // 设备完全支持 Vulkan 时跳过渲染器的版本支持检查
                 if (!version.hasVulkanBackend() || !ensureVulkanSupported(version)) {
-                    val isRendererUnsupported =
-                        (currentRenderer.getMinMCVersion()?.let { mcVer.isLowerVer(it) } ?: false) ||
-                                (currentRenderer.getMaxMCVersion()?.let { mcVer.isBiggerVer(it) } ?: false)
+                    val supportedMin = currentRenderer.getMinMCVersion()?.let { verStr ->
+                        !isSfpewConfiguredFor(currentRenderer, version) && mcVer.isLowerVer(verStr)
+                    } ?: false
+                    val supportedMax = currentRenderer.getMaxMCVersion()?.let { verStr ->
+                        mcVer.isBiggerVer(verStr)
+                    } ?: false
+                    val isRendererUnsupported = supportedMin || supportedMax
 
                     if (isRendererUnsupported) {
                         launchGameViewModel.updateOperation(LaunchGameOperation.UnsupportedRenderer(currentRenderer, version, quickPlay))
@@ -346,32 +347,56 @@ fun LaunchGameOperation(
         }
         is LaunchGameOperation.AccountRelogin -> {
             if (operation.account.isMicrosoftAccount()) {
-                MicrosoftReloginDialog(
-                    onDismissRequest = {
-                        launchGameViewModel.updateOperation(LaunchGameOperation.None)
-                    },
-                    onConfirm = {
-                        launchGameViewModel.updateOperation(LaunchGameOperation.None)
-                        microsoftLogin(
-                            context = activity,
-                            toWeb = navigateToWeb,
-                            backToMain = backToMain,
-                            checkIfInWebScreen = checkIfInWebScreen,
-                            updateOperation = {},
-                            showToast = { text, duration -> eventViewModel.sendToast(text, duration) },
-                            submitError = submitError
-                        ) {
-                            activity.runOnUiThread {
-                                launchGameViewModel.updateOperation(
-                                    LaunchGameOperation.RealLaunch(
-                                        operation.version,
-                                        operation.quickPlay
-                                    )
+                var selectLoginMethod by remember { mutableStateOf(false) }
+
+                val startReloginLogin: (useSystemBrowser: Boolean) -> Unit = { useSystemBrowser ->
+                    launchGameViewModel.updateOperation(LaunchGameOperation.None)
+                    microsoftLogin(
+                        context = activity,
+                        useSystemBrowser = useSystemBrowser,
+                        toWeb = navigateToWeb,
+                        toSystemBrowser = { url ->
+                            eventViewModel.sendEvent(EventViewModel.Event.OpenLink(url))
+                        },
+                        backToMain = backToMain,
+                        checkIfInWebScreen = checkIfInWebScreen,
+                        updateOperation = {},
+                        showToast = { text, duration -> eventViewModel.sendToast(text, duration) },
+                        submitError = submitError
+                    ) {
+                        activity.runOnUiThread {
+                            launchGameViewModel.updateOperation(
+                                LaunchGameOperation.RealLaunch(
+                                    operation.version,
+                                    operation.quickPlay
                                 )
-                            }
+                            )
                         }
                     }
-                )
+                }
+
+                if (selectLoginMethod) {
+                    MicrosoftLoginMethodDialog(
+                        onDismissRequest = {
+                            selectLoginMethod = false
+                        },
+                        onSystemBrowser = {
+                            startReloginLogin(true)
+                        },
+                        onInternalBrowser = {
+                            startReloginLogin(false)
+                        }
+                    )
+                } else {
+                    MicrosoftReloginDialog(
+                        onDismissRequest = {
+                            launchGameViewModel.updateOperation(LaunchGameOperation.None)
+                        },
+                        onConfirm = {
+                            selectLoginMethod = true
+                        }
+                    )
+                }
             } else {
                 OtherAccountReloginDialog(
                     account = operation.account,
@@ -551,11 +576,28 @@ fun Background(
     modifier: Modifier = Modifier,
     allowVideo: Boolean = true
 ) {
+    val blur = AllSettings.backgroundBlur.state
+    val opacity = AllSettings.launcherBackgroundOpacity.state
+    val backgroundMode = AllSettings.backgroundBlurType.state == BackgroundBlur.Background
+    val backgroundBlurEnabled = backgroundMode && blur > 0 && opacity < 100
+    val layerCapture = !backgroundMode && blur > 0 && opacity < 100 && viewModel.isValid
+    val density = LocalDensity.current
+
     Box(
-        modifier = modifier.backgroundBlur(
-            blur = AllSettings.backgroundBlur.state,
-            hazeState = viewModel.hazeState,
-        )
+        modifier = modifier
+            .then(
+                if (backgroundBlurEnabled && Build.VERSION.SDK_INT >= 31) {
+                    Modifier.blur(blur.dp)
+                } else {
+                    Modifier
+                }
+            )
+            .backgroundCapture(
+                store = viewModel,
+                recordContent = layerCapture,
+                blurRadiusPx = blur * density.density,
+                whiteOverlayAlpha = if (backgroundBlurEnabled) whiteOverlayAlpha(blur) else 0f
+            )
     ) {
         if (viewModel.isValid) {
             when {
@@ -568,84 +610,25 @@ fun Background(
                     )
                 }
                 viewModel.isImage -> {
-                    BackgroundImage(
-                        modifier = Modifier.fillMaxSize(),
-                        imageFile = viewModel.backgroundFile,
-                        refreshTrigger = viewModel.refreshTrigger
-                    )
+                    val blurred = viewModel.blurredBackground
+                    if (backgroundBlurEnabled && Build.VERSION.SDK_INT < 31 && blurred != null) {
+                        Image(
+                            bitmap = blurred,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        BackgroundImage(
+                            modifier = Modifier.fillMaxSize(),
+                            imageFile = viewModel.backgroundFile,
+                            refreshTrigger = viewModel.refreshTrigger
+                        )
+                    }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun Modifier.backgroundBlur(
-    blur: Int,
-    hazeState: HazeState,
-): Modifier {
-    return when (AllSettings.backgroundBlurType.state) {
-        BackgroundBlur.Background -> this.glass(blur, null, null)
-        BackgroundBlur.Foreground -> this.hazeSource(hazeState)
-    }
-}
-
-/**
- * 背景模糊效果
- * @param enabled 是否应用模糊效果
- */
-@Composable
-fun Modifier.backgroundGlass(
-    blur: Int,
-    color: Color,
-    enabled: Boolean = true,
-): Modifier {
-    if (AllSettings.backgroundBlurType.state == BackgroundBlur.Background) return this
-    if (!enabled) return this
-    val background = LocalBackgroundViewModel.current?.takeIf { it.isValid } ?: return this
-    return this.glass(blur, color, background.hazeState)
-}
-
-/**
- * 背景模糊效果
- */
-@Composable
-private fun Modifier.glass(
-    blur: Int,
-    color: Color?,
-    hazeState: HazeState?,
-): Modifier {
-    if (blur <= 0 || AllSettings.launcherBackgroundOpacity.state >= 100) return this
-
-    val t = remember(blur) {
-        (blur / 80f).coerceIn(0f, 1f)
-    }
-
-    val colorEffects = remember(t, color) {
-        val whiteAlpha = lerp(
-            start = 0f,
-            stop = 0.25f,
-            fraction = sqrt(t)
-        )
-        buildList {
-            if (color != null) {
-                add(HazeColorEffect.tint(color, BlendMode.SrcOver))
-            }
-            add(HazeColorEffect.tint(Color.White.copy(alpha = whiteAlpha), BlendMode.Softlight))
-        }
-    }
-
-    // null 表示没有外部模糊源（背景模式），直接模糊自身内容
-    val input = if (hazeState != null) HazeInput.Sources(hazeState) else HazeInput.Content
-
-    return this.hazeBlur(
-        input = input,
-        style = HazeBlurStyle {
-            blurEnabled(true)
-            blurRadius(blur.dp)
-            colorEffects(colorEffects)
-        }
-    )
 }
 
 @Composable
@@ -669,8 +652,36 @@ private fun BackgroundImage(
             .build()
     }
 
+    //GIF 的动画帧由绘制 → invalidateSelf → 再绘制的自续循环推进，
+    //任何一帧失效丢失都会让动画永久冻结，由帧时钟显式逐帧驱动重绘，保证循环自愈
+    val isAnimatedState = remember(refreshTrigger) { mutableStateOf(false) }
+    LaunchedEffect(refreshTrigger) {
+        isAnimatedState.value = withContext(Dispatchers.IO) {
+            imageFile.isGifFile()
+        }
+    }
+    val isAnimated = isAnimatedState.value
+
+    val frameTick = remember { mutableIntStateOf(0) }
+    if (isAnimated) {
+        LaunchedEffect(Unit) {
+            while (isActive) {
+                withFrameNanos { }
+                frameTick.intValue++
+            }
+        }
+    }
+
     AsyncImage(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (isAnimated) {
+                Modifier.drawBehind {
+                    frameTick.intValue
+                }
+            } else {
+                Modifier
+            }
+        ),
         model = request,
         imageLoader = imageLoader,
         contentDescription = null,

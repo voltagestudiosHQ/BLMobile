@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ class PathManager {
         lateinit var DIR_CACHE_GAME_DOWNLOADER: File
         lateinit var DIR_CACHE_MODPACK_DOWNLOADER: File
         lateinit var DIR_CACHE_MODPACK_EXPORTER: File
+        lateinit var DIR_CACHE_SAVE_EXPORTER: File
         lateinit var DIR_CACHE_MOD_UPDATER: File
         lateinit var DIR_CACHE_APP_ICON: File
         lateinit var DIR_CACHE_HOME_PAGE: File
@@ -63,6 +64,7 @@ class PathManager {
         lateinit var FILE_MINECRAFT_VERSIONS: File
         lateinit var FILE_LAUNCHER_BACKGROUND: File
         lateinit var FILE_TERRACOTTA_LOG: File
+        lateinit var FILE_SPONSORS_CACHE: File
 
         fun refreshPaths(context: Context) {
             DIR_FILES_PRIVATE = context.filesDir
@@ -91,6 +93,7 @@ class PathManager {
             DIR_CACHE_GAME_DOWNLOADER = File(DIR_CACHE, "temp_game")
             DIR_CACHE_MODPACK_DOWNLOADER = File(DIR_CACHE, "temp_modpack")
             DIR_CACHE_MODPACK_EXPORTER = File(DIR_CACHE, "temp_modpack_exporter")
+            DIR_CACHE_SAVE_EXPORTER = File(DIR_CACHE, "temp_save_exporter")
             DIR_CACHE_MOD_UPDATER = File(DIR_CACHE, "temp_mod_updater")
             DIR_CACHE_APP_ICON = File(DIR_CACHE, "app_icons")
             DIR_CACHE_HOME_PAGE = File(DIR_CACHE, "remote_homepage")
@@ -106,6 +109,7 @@ class PathManager {
             FILE_MINECRAFT_VERSIONS = File(DIR_GAME, "minecraft_versions.json")
             FILE_LAUNCHER_BACKGROUND = File(DIR_BACKGROUND, "background01.file")
             FILE_TERRACOTTA_LOG = File(DIR_FILES_EXTERNAL, "terracotta.log")
+            FILE_SPONSORS_CACHE = File(DIR_CACHE, "monthly_sponsors.json")
 
             createDirs()
             handleLegacy()
@@ -116,7 +120,7 @@ class PathManager {
                 DIR_RUNTIME_MOD, DIR_GAME, DIR_ACCOUNT_SKIN, DIR_ACCOUNT_CAPE, DIR_MULTIRT,
                 DIR_JNA, DIR_COMPONENTS, DIR_MOUSE_POINTER, DIR_BACKGROUND,
                 DIR_CACHE_GAME_DOWNLOADER, DIR_CACHE_MODPACK_DOWNLOADER, DIR_CACHE_MODPACK_EXPORTER,
-                DIR_CACHE_MOD_UPDATER, DIR_CACHE_APP_ICON, DIR_CACHE_HOME_PAGE,
+                DIR_CACHE_SAVE_EXPORTER, DIR_CACHE_MOD_UPDATER, DIR_CACHE_APP_ICON, DIR_CACHE_HOME_PAGE,
                 DIR_LAUNCHER_LOGS, DIR_NATIVE_LOGS, DIR_IMAGE_CACHE, DIR_CONTROL_LAYOUTS,
                 DIR_TERRACOTTA, DIR_STYLES
             ).forEach { dir ->

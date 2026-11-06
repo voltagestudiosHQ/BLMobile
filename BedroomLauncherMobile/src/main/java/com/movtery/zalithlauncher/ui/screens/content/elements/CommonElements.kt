@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -387,30 +387,40 @@ fun TitleTaskFlowDialog(
                 contentColor = onCardColor(),
                 shadowElevation = 6.dp
             ) {
-                if (logOutput == null) {
-                    TaskFlowListColumn(
-                        title = title,
-                        tasks = tasks,
-                        onCancel = onCancel,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (logOutput == null) {
                         TaskFlowListColumn(
                             title = title,
                             tasks = tasks,
-                            onCancel = onCancel,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        TaskLogCard(
-                            logOutput = logOutput,
-                            modifier = Modifier
-                                .width(280.dp)
-                                .fillMaxHeight()
-                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            TaskFlowListColumn(
+                                title = title,
+                                tasks = tasks,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TaskLogCard(
+                                logOutput = logOutput,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                    }
+
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCancel
+                    ) {
+                        MarqueeText(text = stringResource(R.string.generic_cancel))
                     }
                 }
             }
@@ -422,7 +432,6 @@ fun TitleTaskFlowDialog(
 private fun TaskFlowListColumn(
     title: String,
     tasks: List<TitledTask>,
-    onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -442,7 +451,7 @@ private fun TaskFlowListColumn(
                 .weight(1f, fill = false),
             state = scrollState
         ) {
-            items(tasks) { task ->
+            items(tasks, key = { it.task.id }) { task ->
                 InstallingTaskItem(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -452,13 +461,6 @@ private fun TaskFlowListColumn(
                     task = task.task
                 )
             }
-        }
-
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onCancel
-        ) {
-            MarqueeText(text = stringResource(R.string.generic_cancel))
         }
     }
 }

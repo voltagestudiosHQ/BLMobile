@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -214,7 +214,7 @@ private fun getPredefinedSeedColor(theme: ColorThemeType, darkTheme: Boolean): I
     }
 }
 
-fun MaterialAlertDialogBuilder.showThemed(): AlertDialog {
+fun MaterialAlertDialogBuilder.createThemed(): AlertDialog {
     val colors = getColorScheme(context)
     background?.setTint(colors.surfaceContainerHigh.toArgb())
 
@@ -240,5 +240,9 @@ fun MaterialAlertDialogBuilder.showThemed(): AlertDialog {
             getButton(AlertDialog.BUTTON_NEGATIVE)?.applyThemeColors(colors)
             getButton(AlertDialog.BUTTON_NEUTRAL)?.applyThemeColors(colors)
         }
-    }.also { it.show() }
+    }
+}
+
+fun MaterialAlertDialogBuilder.showThemed(): AlertDialog {
+    return createThemed().also { it.show() }
 }

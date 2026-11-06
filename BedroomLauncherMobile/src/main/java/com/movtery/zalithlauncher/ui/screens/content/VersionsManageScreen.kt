@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,13 +37,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.nonInteractiveScrollbar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -86,12 +86,16 @@ import com.movtery.zalithlauncher.game.version.installed.cleanup.GameAssetCleane
 import com.movtery.zalithlauncher.setting.AllSettings
 import com.movtery.zalithlauncher.ui.activities.MainActivity
 import com.movtery.zalithlauncher.ui.base.BaseScreen
+import com.movtery.zalithlauncher.ui.components.AnimatedDirection
 import com.movtery.zalithlauncher.ui.components.EdgeDirection
 import com.movtery.zalithlauncher.ui.components.IconTextButton
 import com.movtery.zalithlauncher.ui.components.MarqueeText
 import com.movtery.zalithlauncher.ui.components.ScalingActionButton
 import com.movtery.zalithlauncher.ui.components.ScalingLabel
+import com.movtery.zalithlauncher.ui.components.animated
 import com.movtery.zalithlauncher.ui.components.fadeEdge
+import com.movtery.zalithlauncher.ui.components.rememberAnimatedContext
+import com.movtery.zalithlauncher.ui.components.topBarWheelFallback
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.content.elements.CleanupOperation
 import com.movtery.zalithlauncher.ui.screens.content.elements.GamePathItemLayout
@@ -103,7 +107,6 @@ import com.movtery.zalithlauncher.ui.screens.content.elements.VersionsOperation
 import com.movtery.zalithlauncher.ui.screens.content.elements.backgroundGlass
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
-import com.movtery.zalithlauncher.utils.animation.swapAnimateDpAsState
 import com.movtery.zalithlauncher.utils.canHandlePermission
 import com.movtery.zalithlauncher.utils.checkStoragePermissions
 import com.movtery.zalithlauncher.viewmodel.ErrorViewModel
@@ -354,14 +357,10 @@ private fun LeftMenu(
     changePathOperation: (GamePathOperation) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val surfaceXOffset by swapAnimateDpAsState(
-        targetValue = (-40).dp,
-        swapIn = isVisible,
-        isHorizontal = true
-    )
+    val ctx = rememberAnimatedContext(isVisible = isVisible)
 
     Column(
-        modifier = modifier.offset { IntOffset(x = surfaceXOffset.roundToPx(), y = 0) },
+        modifier = modifier.animated(ctx, from = AnimatedDirection.Left),
     ) {
         val gamePaths by GamePathManager.gamePathData.collectAsStateWithLifecycle()
         val currentPath by GamePathManager.currentPath.collectAsStateWithLifecycle()
@@ -443,7 +442,7 @@ private fun LeftMenu(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun VersionsLayout(
     modifier: Modifier = Modifier,
@@ -463,13 +462,13 @@ private fun VersionsLayout(
     onVersionPinned: () -> Unit,
     onInstall: () -> Unit,
 ) {
-    val surfaceYOffset by swapAnimateDpAsState(
-        targetValue = (-40).dp,
-        swapIn = isVisible
-    )
+    val ctx = rememberAnimatedContext(isVisible = isVisible)
 
-    Box(
-        modifier = modifier.offset { IntOffset(x = 0, y = surfaceYOffset.roundToPx()) }
+    PullToRefreshBox(
+        modifier = modifier.animated(ctx),
+        isRefreshing = false,
+        enabled = !isRefreshing,
+        onRefresh = onRefresh
     ) {
         if (isRefreshing) { //版本正在刷新中
             Box(
@@ -507,15 +506,17 @@ private fun VersionsLayout(
             val barShownFraction = remember(topAppBarState) {
                 derivedStateOf { 1f - topAppBarState.collapsedFraction }
             }
-            val actionBarShadowElevation = if (backgroundVisible()) {
-                0.dp // 背景可见时不使用阴影，因为卡片会半透明化
-            } else {
-                5.dp * barShownFraction.value * listScrolledFraction.value
-            }
+            //背景可见时不使用阴影，因为卡片会半透明化
+            val withShadow = !backgroundVisible()
 
-            val listTopFadePx = (headerHeightPx + headerTopPaddingPx + 80f) *
-                    listScrolledFraction.value *
-                    barShownFraction.value
+            //悬浮操作栏的阴影在图层块内读取滚动比例，滚动时只更新图层不重组
+            val barShape = MaterialTheme.shapes.large
+            val barShadowModifier = Modifier.graphicsLayer {
+                if (withShadow) {
+                    shadowElevation = 5.dp.toPx() * listScrolledFraction.value * barShownFraction.value
+                }
+                shape = barShape
+            }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 if (versions.isNotEmpty()) {
@@ -523,12 +524,17 @@ private fun VersionsLayout(
                         modifier = Modifier
                             .fillMaxSize()
                             .nestedScroll(scrollBehavior.nestedScrollConnection)
+                            .topBarWheelFallback(topAppBarState)
                             .nonInteractiveScrollbar(
                                 state = listState.scrollIndicatorState!!,
                                 orientation = Orientation.Vertical,
                             )
                             .clipToBounds()
-                            .topFade(listTopFadePx),
+                            .topFade {
+                                (headerHeightPx + headerTopPaddingPx + 80f) *
+                                        listScrolledFraction.value *
+                                        barShownFraction.value
+                            },
                         contentPadding = PaddingValues(
                             start = 12.dp,
                             top = with(density) {
@@ -596,11 +602,12 @@ private fun VersionsLayout(
                         val cardColor = cardColor()
 
                         Surface(
-                            modifier = Modifier.height(IntrinsicSize.Max),
+                            modifier = Modifier
+                                .height(IntrinsicSize.Max)
+                                .then(barShadowModifier),
                             color = cardColor,
                             contentColor = onCardColor(),
                             shape = MaterialTheme.shapes.large,
-                            shadowElevation = actionBarShadowElevation,
                         ) {
                             Row(
                                 modifier = Modifier
@@ -628,11 +635,11 @@ private fun VersionsLayout(
                         Surface(
                             modifier = Modifier
                                 .weight(1f, fill = false)
-                                .height(IntrinsicSize.Max),
+                                .height(IntrinsicSize.Max)
+                                .then(barShadowModifier),
                             color = cardColor,
                             contentColor = onCardColor(),
                             shape = MaterialTheme.shapes.large,
-                            shadowElevation = actionBarShadowElevation,
                         ) {
                             val scrollState = rememberScrollState()
                             Row(
@@ -676,22 +683,26 @@ private fun VersionsLayout(
 }
 
 /**
- * 在组件顶部绘制指定像素高度的线性渐隐
+ * 在组件顶部绘制指定像素高度的线性渐隐；高度在绘制阶段读取，随滚动只触发重绘
  */
-private fun Modifier.topFade(heightPx: Float): Modifier = this
+private fun Modifier.topFade(heightPx: () -> Float): Modifier = this
     .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
     .drawWithContent {
         drawContent()
-        if (heightPx <= 0f) return@drawWithContent
+        val height = heightPx()
+        if (height <= 0f) return@drawWithContent
         inset(
             left = 0f,
             top = 0f,
             right = 0f,
-            bottom = (size.height - heightPx).coerceAtLeast(0f)
+            bottom = (size.height - height).coerceAtLeast(0f)
         ) {
             drawRect(
-                brush = Brush.verticalGradient(0f to Color.Black, 1f to Color.Transparent),
+                brush = TopFadeBrush,
                 blendMode = BlendMode.DstOut
             )
         }
     }
+
+/** 顶部渐隐使用的固定渐变 */
+private val TopFadeBrush = Brush.verticalGradient(0f to Color.Black, 1f to Color.Transparent)

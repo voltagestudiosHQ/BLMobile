@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,8 +54,16 @@ class DownloadStats {
 
     fun registerFile(expectedSize: Long) {
         totalFilesCounter.incrementAndGet()
-        if (expectedSize > 0) {
-            totalBytesCounter.accumulateAndGet(expectedSize) { previous, add ->
+        registerBytes(expectedSize)
+    }
+
+    /**
+     * 把字节数补进字节分母，不影响文件计数；
+     * 用于下载前未知大小的文件在完成时补记实际大小
+     */
+    fun registerBytes(bytes: Long) {
+        if (bytes > 0) {
+            totalBytesCounter.accumulateAndGet(bytes) { previous, add ->
                 if (previous < 0) add else previous + add
             }
         }
@@ -110,8 +118,6 @@ class DownloadStats {
     private var currentSpeed: Long = 0L
 
     companion object {
-        /** 引擎判定"速度偏低需要补连接"的水位线 */
-        const val LOW_SPEED_THRESHOLD_BPS: Long = 256L * 1024L
         /** 速率采样周期 */
         private const val SAMPLE_INTERVAL_NANOS = 1_000_000_000L
         private const val NANOS_PER_SEC = 1_000_000_000L

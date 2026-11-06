@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.google.gson.JsonObject
 import com.movtery.zalithlauncher.BuildConfig
+import com.movtery.zalithlauncher.BuildKeys
 import com.movtery.zalithlauncher.context.GlobalContext
-import com.movtery.zalithlauncher.game.path.getGameHome
+import com.movtery.zalithlauncher.game.launch.LogName
 import com.movtery.zalithlauncher.game.path.getVersionsHome
 import com.movtery.zalithlauncher.game.support.touch_controller.VibrationHandler
 import com.movtery.zalithlauncher.path.PathManager
@@ -52,6 +53,7 @@ private const val TAG = "Version"
 /**
  * Minecraft 版本，由版本名称进行区分
  * @param versionName 版本名称
+ * @param gameHome 版本所在的游戏目录（.minecraft）
  * @param versionConfig 独立版本的配置
  * @param versionInfo 版本信息
  * @param isValid 版本的有效性
@@ -61,10 +63,15 @@ private const val TAG = "Version"
 @Parcelize
 class Version(
     private val versionName: String,
+    private val gameHome: String,
     private val versionConfig: VersionConfig,
     private val versionInfo: VersionInfo?,
     private val isValid: Boolean,
     val versionType: VersionType,
+    /**
+     * 预先构建的启动清单 JSON
+     */
+    var launchManifest: String? = null,
     /**
      * 控制是否将当前账号视为离线账号启动游戏
      */
@@ -76,7 +83,11 @@ class Version(
     /**
      * 启用控制代理
      */
-    var enableTouchProxy: Boolean = false
+    var enableTouchProxy: Boolean = false,
+    /**
+     * 是否检测到自实现 FPE 模拟的模组
+     */
+    var fpeEmulatorModDetected: Boolean = false,
 ): Parcelable {
     /**
      * 当前版本是否被置顶
@@ -95,19 +106,48 @@ class Version(
     }
 
     /**
+     * @return 版本所在的游戏目录（.minecraft）
+     */
+    fun getGameHome(): String = gameHome
+
+    /**
      * @return 获取版本所属的版本文件夹
      */
-    fun getVersionsFolder(): String = getVersionsHome()
+    fun getVersionsFolder(): String = getVersionsHome(gameHome)
 
     /**
      * @return 获取版本文件夹
      */
-    fun getVersionPath(): File = File(getVersionsHome(), versionName)
+    fun getVersionPath(): File = File(getVersionsFolder(), versionName)
 
     /**
      * @return 获取版本名称
      */
-    fun getVersionName(): String = getVersionPath().name
+    fun getVersionName(): String = versionName
+
+    /**
+     * @return 启动器版本标识文件夹
+     */
+    fun getZalithVersionPath(): File = File(getVersionPath(), BuildKeys.LAUNCHER_IDENTIFIER)
+
+    /**
+     * @return 游戏的上一次运行日志
+     */
+    fun getLatestLog(): File = File(getZalithVersionPath(), LogName.GAME.fileName)
+
+    /**
+     * @return 获取版本设置的图标
+     */
+    fun getVersionIconFile(): File = File(getZalithVersionPath(), "VersionIcon.png")
+
+    /**
+     * 获取继承（inheritsFrom）版本的客户端 jar 文件
+     * @param inheritsFrom 版本声明的继承目标
+     * @return 继承目标未声明或文件不存在时返回 null
+     */
+    fun getInheritedClientJar(inheritsFrom: String?): File? =
+        inheritsFrom?.let { File(File(getVersionsFolder(), it), "$it.jar") }
+            ?.takeIf { jar -> jar.exists() }
 
     /**
      * @return 获取客户端 jar 文件
@@ -159,15 +199,19 @@ class Version(
      * @return 获取版本的游戏文件夹路径（若开启了版本隔离，则路径为版本文件夹）
      */
     fun getGameDir(): File {
-        return if (versionConfig.isIsolation()) versionConfig.getVersionPath()
+        return if (versionConfig.isIsolation()) getVersionPath()
         //未开启版本隔离可以使用自定义路径，如果自定义路径为空（则为未设置），那么返回默认游戏路径（.minecraft/）
         else if (versionConfig.customPath.isNotEmpty()) File(versionConfig.customPath)
-        else File(getGameHome())
+        else File(gameHome)
     }
 
     private fun String.getValueOrDefault(default: String): String = this.takeIf { it.isNotEmpty() } ?: default
 
     fun getRenderer(): String = versionConfig.renderer.getValueOrDefault(AllSettings.renderer.getValue())
+
+    fun isSfpewPluginLayerEnabled(): Boolean = versionConfig.isSfpewPluginLayerEnabled()
+
+    fun isSfpewRelaxedContextEnabled(): Boolean = versionConfig.isSfpewRelaxedContextEnabled()
 
     fun getDriver(): String = versionConfig.driver.getValueOrDefault(AllSettings.vulkanDriver.getValue())
 
@@ -182,6 +226,8 @@ class Version(
 
     fun getJvmArgs(): String = versionConfig.jvmArgs
 
+    fun getGameArgs(): String = versionConfig.gameArgs
+
     fun getCustomInfo(): String = versionConfig.customInfo.getValueOrDefault(AllSettings.versionCustomInfo.getValue())
         .replace("[zl_version]", BuildConfig.VERSION_NAME)
 
@@ -195,6 +241,12 @@ class Version(
 
     fun getTouchVibrateKind(): VibrationHandler.VibrateKind = versionConfig.touchVibrateKind ?: VibrationHandler.VibrateKind.default
 }
+
+/** 通过版本文件夹获取启动器版本标识文件夹 */
+fun getZalithVersionPath(versionFolder: File): File = File(versionFolder, BuildKeys.LAUNCHER_IDENTIFIER)
+
+/** 通过版本文件夹获取版本图标文件 */
+fun getVersionIconFile(versionFolder: File): File = File(getZalithVersionPath(versionFolder), "VersionIcon.png")
 
 /** 26.2-snapshot-1 */
 private const val VULKAN_RUNTIME_WORLD_VERSION = 4883

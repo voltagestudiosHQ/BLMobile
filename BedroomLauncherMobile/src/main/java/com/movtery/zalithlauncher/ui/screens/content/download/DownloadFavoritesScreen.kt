@@ -1,6 +1,6 @@
 /*
  * Zalith Launcher 2
- * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ * Copyright (C) 2025-2026 MovTery <movtery228@qq.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
-import com.movtery.zalithlauncher.game.download.assets.platform.Platform
-import com.movtery.zalithlauncher.game.download.assets.platform.PlatformClasses
+import com.movtery.zalithlauncher.game.download.addon.platform.Platform
+import com.movtery.zalithlauncher.game.download.addon.platform.PlatformClasses
+import com.movtery.zalithlauncher.ui.screens.NestedNavDisplay
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.TitledNavKey
-import com.movtery.zalithlauncher.ui.screens.content.download.assets.favorites.FavoritesScreen
+import com.movtery.zalithlauncher.ui.screens.content.download.addon.favorites.FavoritesScreen
 import com.movtery.zalithlauncher.ui.screens.onBack
 import com.movtery.zalithlauncher.ui.screens.rememberTransitionSpec
 
@@ -55,14 +54,14 @@ fun DownloadFavoritesScreen(
     }
 
     if (backStack.isNotEmpty()) {
-        NavDisplay(
+        NestedNavDisplay(
+            ownerKey = key,
             backStack = backStack,
             modifier = Modifier.fillMaxSize(),
             onBack = {
                 onBack(backStack)
             },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
+            extraDecorators = listOf(
                 rememberViewModelStoreNavEntryDecorator()
             ),
             transitionSpec = rememberTransitionSpec(),
