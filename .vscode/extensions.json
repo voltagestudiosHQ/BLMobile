@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "davidanson.vscode-markdownlint",
+        "vscjava.vscode-java-pack",
+        "github.vscode-github-actions"
+    ]
+}
