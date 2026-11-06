@@ -1,5 +1,5 @@
 # BedroomLauncher
-![Downloads](https://img.shields.io/github/downloads/voltageStudiosOfficial/BLMobile/total)
+[![Downloads](https://img.shields.io/github/downloads/voltageStudiosOfficial/BLMobile/total)](https://github.com/voltagestudiosHQ/BLMobile/releases)
 
 > [!IMPORTANT]
 > Bedroom Launcher is an unofficial modified version of [Zalith Launcher 2](https://github.com/ZalithLauncher/ZalithLauncher2). It is maintained separately from Zalith Launcher 2, LeviLaunchroid, and PojavLauncher.
