@@ -29,7 +29,7 @@ import org.junit.Test
  */
 class JvmExclusiveProcessTest {
 
-    private val main = "dev.voltagestudios.bedroom.debug"
+    private val main = "dev.voltagestudios.bedroomlauncher.debug"
 
     @Test
     fun `jvm and game processes are exclusive`() {
