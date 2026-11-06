@@ -16,7 +16,7 @@ plugins {
 }
 
 val zalithPackageName = "com.movtery.zalithlauncher"
-val bedroomLauncherApplicationId = "tech.voltagestudios.dream"
+val bedroomLauncherApplicationId = "dev.voltagestudios.bedroom"
 val launcherAPPName = project.findProperty("launcher_app_name") as? String ?: error("The \"launcher_app_name\" property is not set in gradle.properties.")
 val launcherName = project.findProperty("launcher_name") as? String ?: error("The \"launcher_name\" property is not set in gradle.properties.")
 val launcherShortName = project.findProperty("launcher_short_name") as? String ?: error("The \"launcher_short_name\" property is not set in gradle.properties.")

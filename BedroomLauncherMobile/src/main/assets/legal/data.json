@@ -1,0 +1,18 @@
+{
+  "version": "2026/11/06",
+  "files": [
+    {
+      "effective_region": "global",
+      "data_list": [
+        {
+          "title": "BedroomLauncher Mobile User Agreement",
+          "path": "legal/en/user_agreement.md"
+        },
+        {
+          "title": "BedroomLauncher Mobile Privacy Policy",
+          "path": "legal/en/privacy_policy.md"
+        }
+      ]
+    }
+  ]
+}

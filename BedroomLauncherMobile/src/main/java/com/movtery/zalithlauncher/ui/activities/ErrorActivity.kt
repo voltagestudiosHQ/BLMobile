@@ -31,21 +31,15 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import com.jakewharton.processphoenix.ProcessPhoenix
 import com.movtery.zalithlauncher.R
-import com.movtery.zalithlauncher.context.COPY_LABEL_LINK
 import com.movtery.zalithlauncher.path.PathManager
 import com.movtery.zalithlauncher.ui.base.BaseAppCompatActivity
 import com.movtery.zalithlauncher.ui.screens.main.ErrorScreen
-import com.movtery.zalithlauncher.ui.screens.main.crashlogs.ShareLinkOperation
 import com.movtery.zalithlauncher.ui.theme.ZalithLauncherTheme
 import com.movtery.zalithlauncher.ui.theme.backgroundColor
 import com.movtery.zalithlauncher.ui.theme.onBackgroundColor
-import com.movtery.zalithlauncher.utils.copyText
-import com.movtery.zalithlauncher.utils.file.shareFile
 import com.movtery.zalithlauncher.utils.getParcelableSafely
 import com.movtery.zalithlauncher.utils.getSerializableSafely
-import com.movtery.zalithlauncher.utils.network.openLink
 import com.movtery.zalithlauncher.utils.string.throwableToString
-import com.movtery.zalithlauncher.viewmodel.LogsUploadViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.parcelize.Parcelize
 import java.io.File
@@ -82,11 +76,6 @@ private data class JvmCrash(
 @AndroidEntryPoint
 class ErrorActivity : BaseAppCompatActivity() {
 
-    /**
-     * 游戏崩溃日志上传逻辑管理 ViewModel
-     */
-    private val viewModel: LogsUploadViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -105,10 +94,7 @@ class ErrorActivity : BaseAppCompatActivity() {
                     message = message,
                     messageBody = messageBody,
                     crashType = CrashType.GAME_CRASH,
-                    logFile = File(jvmCrash.logPath).also { file ->
-                        //检查日志文件是否适合上传
-                        viewModel.check(file)
-                    }
+                    logFile = File(jvmCrash.logPath)
                 )
             }
             else -> {
@@ -124,24 +110,10 @@ class ErrorActivity : BaseAppCompatActivity() {
             }
         }
 
-        val logFile = errorMessage.logFile
         val canRestart: Boolean = extras.getBoolean(BUNDLE_CAN_RESTART, true)
-        val logExists = logFile.exists() && logFile.isFile
 
         setContent {
             ZalithLauncherTheme {
-                ShareLinkOperation(
-                    operation = viewModel.operation,
-                    onChange = { viewModel.operation = it },
-                    onUploadChancel = { viewModel.cancel() },
-                    onUpload = {
-                        viewModel.upload(logFile) { link ->
-                            openLink(link)
-                            copyText(COPY_LABEL_LINK, link, this@ErrorActivity)
-                        }
-                    }
-                )
-
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = backgroundColor(),
@@ -149,17 +121,9 @@ class ErrorActivity : BaseAppCompatActivity() {
                 ) {
                     ErrorScreen(
                         crashType = errorMessage.crashType,
-                        shareLogs = logExists,
-                        canUpload = viewModel.canUpload,
+                        shareLogs = false,
+                        canUpload = false,
                         canRestart = canRestart,
-                        onShareLogsClick = {
-                            if (logExists) {
-                                shareFile(this@ErrorActivity, logFile)
-                            }
-                        },
-                        onUploadClick = {
-                            viewModel.operation = ShareLinkOperation.Tip
-                        },
                         onRestartClick = {
                             ProcessPhoenix.triggerRebirth(this@ErrorActivity)
                         },

@@ -112,7 +112,6 @@ import com.movtery.zalithlauncher.ui.systemLocaleStringResource
 import com.movtery.zalithlauncher.ui.theme.ColorThemeType
 import com.movtery.zalithlauncher.ui.theme.cardColor
 import com.movtery.zalithlauncher.ui.theme.onCardColor
-import com.movtery.zalithlauncher.utils.file.shareFile
 import com.movtery.zalithlauncher.utils.isChinaMainland
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.string.getMessageOrToString
@@ -395,35 +394,6 @@ fun LauncherSettingsScreen(
                         suffix = stringResource(R.string.unit_day)
                     )
 
-                    SettingsCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        position = CardPosition.Bottom,
-                        title = stringResource(R.string.settings_launcher_log_share_title),
-                        summary = stringResource(R.string.settings_launcher_log_share_summary),
-                        onClick = {
-                            TaskSystem.submitTask(
-                                Task.runTask(
-                                    id = "ZIP_LOGS",
-                                    task = { task ->
-                                        task.updateProgress(-1f)
-                                        task.updateMessage(androidText(R.string.settings_launcher_log_share_packing))
-                                        val logsFile = File(PathManager.DIR_CACHE, "logs.zip")
-                                        Logger.pack(logsFile)
-                                        task.updateProgress(1f)
-                                        task.updateMessage(null)
-                                        //分享压缩包
-                                        shareFile(
-                                            context = context,
-                                            file = logsFile
-                                        )
-                                    },
-                                    onError = { e ->
-                                        Logger.error(TAG, "Failed to package log files.", e)
-                                    }
-                                )
-                            )
-                        }
-                    )
                 }
             }
         }

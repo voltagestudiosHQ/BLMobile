@@ -72,7 +72,6 @@ import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SettingsCa
 import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SettingsCardColumn
 import com.movtery.zalithlauncher.ui.screens.content.settings.layouts.SwitchSettingsCard
 import com.movtery.zalithlauncher.ui.theme.cardTitleColor
-import com.movtery.zalithlauncher.utils.file.shareFile
 import com.movtery.zalithlauncher.viewmodel.EventViewModel
 import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
 import com.movtery.zalithlauncher.viewmodel.sendToast
@@ -108,15 +107,7 @@ fun MultiplayerScreen(
                         .weight(0.5f)
                         .animated(ctx, from = AnimatedDirection.Right)
                         .padding(end = 12.dp),
-                    eventViewModel = eventViewModel,
-                    onShareLogs = {
-                        val logFile = PathManager.FILE_TERRACOTTA_LOG
-                        if (logFile.exists()) {
-                            shareFile(context, logFile)
-                        } else {
-                            eventViewModel.sendToast(androidText(R.string.terracotta_export_log_share_null))
-                        }
-                    }
+                    eventViewModel = eventViewModel
                 )
             }
         }
@@ -171,8 +162,7 @@ private fun MultiplayerOperation(
 @Composable
 private fun MainMenu(
     modifier: Modifier = Modifier,
-    eventViewModel: EventViewModel,
-    onShareLogs: () -> Unit
+    eventViewModel: EventViewModel
 ) {
     val context = LocalContext.current
     var operation by remember { mutableStateOf<MultiplayerOperation>(MultiplayerOperation.None) }
@@ -272,16 +262,6 @@ private fun MainMenu(
             )
 
             val terracottaEnabled = AllSettings.enableTerracotta.state
-
-            //分享联机核心日志
-            SettingsCard(
-                modifier = Modifier.fillMaxWidth(),
-                position = CardPosition.Middle,
-                title = stringResource(R.string.terracotta_export_log_share),
-                innerPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-                onClick = onShareLogs,
-                enabled = terracottaEnabled
-            )
 
             //关于 EasyTier
             SettingsCard(

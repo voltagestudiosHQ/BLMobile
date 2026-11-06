@@ -41,7 +41,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.movtery.guide.GuideHost
 import com.movtery.petlib.PetGazeRouter
 import com.movtery.zalithlauncher.R
-import com.movtery.zalithlauncher.context.COPY_LABEL_LINK
 import com.movtery.zalithlauncher.coroutine.Task
 import com.movtery.zalithlauncher.coroutine.TaskSystem
 import com.movtery.zalithlauncher.filemanager.FileManagerLauncher
@@ -75,9 +74,6 @@ import com.movtery.zalithlauncher.ui.screens.content.elements.TitleTaskFlowDialo
 import com.movtery.zalithlauncher.ui.screens.content.navigateToLogView
 import com.movtery.zalithlauncher.ui.screens.content.navigateToWeb
 import com.movtery.zalithlauncher.ui.screens.main.MainScreen
-import com.movtery.zalithlauncher.ui.screens.main.crashlogs.LogShareMenu
-import com.movtery.zalithlauncher.ui.screens.main.crashlogs.LogShareMenuOperation
-import com.movtery.zalithlauncher.ui.screens.main.crashlogs.ShareLinkOperation
 import com.movtery.zalithlauncher.ui.theme.ZalithLauncherTheme
 import com.movtery.zalithlauncher.ui.theme.festivals.FestivalEffects
 import com.movtery.zalithlauncher.ui.theme.festivals.FestivalTapObserver
@@ -87,9 +83,7 @@ import com.movtery.zalithlauncher.ui.vulkan_checker.VCOperation
 import com.movtery.zalithlauncher.ui.vulkan_checker.VulkanChecker
 import com.movtery.zalithlauncher.upgrade.TooFrequentOperationException
 import com.movtery.zalithlauncher.utils.compareLangTag
-import com.movtery.zalithlauncher.utils.copyText
 import com.movtery.zalithlauncher.utils.festival.getTodayFestivals
-import com.movtery.zalithlauncher.utils.file.shareFile
 import com.movtery.zalithlauncher.utils.isChinese
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.utils.network.openLink
@@ -101,8 +95,6 @@ import com.movtery.zalithlauncher.viewmodel.EventViewModel
 import com.movtery.zalithlauncher.viewmodel.LaunchGameViewModel
 import com.movtery.zalithlauncher.viewmodel.LauncherUpgradeOperation
 import com.movtery.zalithlauncher.viewmodel.LauncherUpgradeViewModel
-import com.movtery.zalithlauncher.viewmodel.LogShareViewModel
-import com.movtery.zalithlauncher.viewmodel.LogsUploadViewModel
 import com.movtery.zalithlauncher.viewmodel.ModifyVersionOperation
 import com.movtery.zalithlauncher.viewmodel.ModifyVersionViewModel
 import com.movtery.zalithlauncher.viewmodel.ModpackConfirmUseMobileDataOperation
@@ -181,16 +173,6 @@ class MainActivity : BaseAppCompatActivity() {
      * 当月赞助者 ViewModel
      */
     private val sponsorsViewModel: SponsorsViewModel by viewModels()
-
-    /**
-     * 游戏日志分享菜单 ViewModel
-     */
-    private val logShareViewModel: LogShareViewModel by viewModels()
-
-    /**
-     * 游戏日志上传 ViewModel
-     */
-    private val logsUploadViewModel: LogsUploadViewModel by viewModels()
 
     /**
      * Vulkan检测状态 ViewModel
@@ -291,13 +273,6 @@ class MainActivity : BaseAppCompatActivity() {
                     }
                     is EventViewModel.Event.Launch.PlaySave -> {
                         launchGameViewModel.quickPlaySave(event.version, event.saveName)
-                    }
-                    is EventViewModel.Event.LogShare.ShareGameLog -> {
-                        val file = event.logFile
-                        if (file.exists()) {
-                            logsUploadViewModel.check(file)
-                            logShareViewModel.openMenu(file)
-                        }
                     }
                     is EventViewModel.Event.VulkanCheck -> {
                         checkVulkan(event.version)
@@ -459,48 +434,6 @@ class MainActivity : BaseAppCompatActivity() {
                     operation = modpackImportViewModel.confirmMobileDataOperation,
                     onConfirmUse = { use ->
                         modpackImportViewModel.confirmUseMobileData(use)
-                    }
-                )
-
-                //游戏日志分享菜单
-                val logFile = logShareViewModel.currentLogFile
-                if (logShareViewModel.showMenu && logFile != null) {
-                    LogShareMenu(
-                        operation = LogShareMenuOperation.ShowMenu,
-                        onChange = { operation ->
-                            if (operation == LogShareMenuOperation.None) {
-                                logShareViewModel.closeMenu()
-                            }
-                        },
-                        onView = {
-                            screenBackStackModel.mainScreen.backStack.navigateToLogView(
-                                logPath = logFile.absolutePath
-                            )
-                            logShareViewModel.closeMenu()
-                        },
-                        onShare = {
-                            shareFile(this@MainActivity, logFile)
-                            logShareViewModel.closeMenu()
-                        },
-                        canUpload = logsUploadViewModel.canUpload,
-                        onUpload = {
-                            logsUploadViewModel.operation = ShareLinkOperation.Tip
-                            logShareViewModel.closeMenu()
-                        }
-                    )
-                }
-
-                ShareLinkOperation(
-                    operation = logsUploadViewModel.operation,
-                    onChange = { logsUploadViewModel.operation = it },
-                    onUploadChancel = { logsUploadViewModel.cancel() },
-                    onUpload = {
-                        logFile?.let { file ->
-                            logsUploadViewModel.upload(file) { link ->
-                                openLink(link)
-                                copyText(COPY_LABEL_LINK, link, this@MainActivity)
-                            }
-                        }
                     }
                 )
 

@@ -1,0 +1,103 @@
+name: Nightly Release
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version_code: ${{ steps.version.outputs.code }}
+      version_name: ${{ steps.version.outputs.name }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Increment nightly version
+        id: version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime
+          import os
+          import pathlib
+          import re
+
+          properties = pathlib.Path("BedroomLauncherMobile/gradle.properties")
+          text = properties.read_text()
+
+          code_matches = list(re.finditer(r"(?m)^launcher_version_code=(\d+)$", text))
+          if len(code_matches) != 1:
+              raise SystemExit("Expected exactly one integer launcher_version_code")
+
+          code = int(code_matches[0].group(1)) + 10
+          name = "Nightly " + datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+          text = re.sub(r"(?m)^launcher_version_code=\d+$", f"launcher_version_code={code}", text)
+          name_matches = list(re.finditer(r"(?m)^launcher_version_name=.*$", text))
+          if len(name_matches) != 1:
+              raise SystemExit("Expected exactly one launcher_version_name")
+          text = re.sub(r"(?m)^launcher_version_name=.*$", f"launcher_version_name={name}", text)
+          properties.write_text(text)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"code={code}\n")
+              output.write(f"name={name}\n")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add BedroomLauncherMobile/gradle.properties
+          git commit -m "chore: bump nightly version"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: bump-version
+    uses: ./.github/workflows/build.yml
+    with:
+      variant: Release
+      ref: ${{ needs.bump-version.outputs.commit }}
+    secrets: inherit
+
+  publish:
+    needs: [bump-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release APKs
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release apk (*)
+          path: dist
+          merge-multiple: true
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_CODE: ${{ needs.bump-version.outputs.version_code }}
+          VERSION_NAME: ${{ needs.bump-version.outputs.version_name }}
+          TARGET_COMMIT: ${{ needs.bump-version.outputs.commit }}
+        run: |
+          shopt -s nullglob
+          apks=(dist/*.apk)
+          if [ "${#apks[@]}" -eq 0 ]; then
+            echo "No APKs were downloaded from the release build." >&2
+            exit 1
+          fi
+          gh release create "nightly-${VERSION_CODE}" "${apks[@]}" \
+            --title "${VERSION_NAME}" \
+            --notes "Automated nightly build." \
+            --prerelease \
+            --latest=false \
+            --target "${TARGET_COMMIT}"

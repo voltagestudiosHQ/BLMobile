@@ -158,9 +158,14 @@ fun VersionOverViewScreen(
                     modifier = Modifier.animated(ctx),
                     version = version,
                     onShareLog = { logFile ->
-                        eventViewModel.sendEvent(
-                            EventViewModel.Event.LogShare.ShareGameLog(logFile)
-                        )
+                        if (logFile.exists()) {
+                            eventViewModel.sendEvent(
+                                EventViewModel.Event.OpenFileManager(
+                                    rootPath = logFile.parentFile?.absolutePath ?: version.getGameHome(),
+                                    currentPath = logFile.parentFile?.absolutePath ?: version.getGameHome(),
+                                )
+                            )
+                        }
                     },
                     onEditSummary = { versionsOperation = VersionsOperation.EditSummary(version) },
                     onRename = { versionsOperation = VersionsOperation.Rename(version) },

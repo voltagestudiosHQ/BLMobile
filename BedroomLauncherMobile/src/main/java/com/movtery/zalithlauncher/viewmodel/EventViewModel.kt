@@ -109,10 +109,6 @@ class EventViewModel : ViewModel() {
                 val link: String
             )
         }
-        /** 分享游戏日志 */
-        sealed interface LogShare : Event {
-            data class ShareGameLog(val logFile: File) : LogShare
-        }
         /** 设备 Vulkan 检查 */
         data class VulkanCheck(val version: Version): Event
 
