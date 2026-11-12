@@ -24,8 +24,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BedroomLauncher"
-include(":BedroomLauncherMobile")
+rootProject.name = "BedroomLauncherMobile"
+include(":BLMobileApplication")
 include(":LWJGL")
 include(":LWJGL:patches")
 project(":LWJGL:patches").projectDir = file("LWJGL/patches")
