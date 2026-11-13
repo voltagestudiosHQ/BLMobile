@@ -1,0 +1,133 @@
+# Build on merges to `main`
+# Ref: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#ci-triggers
+trigger:
+  branches:
+    include:
+      - main
+
+# Build for opened PRs to `main`
+# Ref: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#pr-triggers
+pr:
+- main
+- releases/*
+
+# Nightly trigger. Builds on the specified schedule.
+# Refs:
+# - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/scheduled-triggers
+# - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/scheduled-triggers#cron-syntax
+schedules:
+  # Schedule is specified in `cron` syntax. The below means: "8am UTC (midnight PST) every day".
+  - cron: "0 8 * * *"
+    displayName: Daily build
+    branches:
+      include:
+        - main
+    always: true
+
+# Name builds with the definition name, date, and build-count-for-that-day. For
+# example, "libHttpClient.CI_20210214.1".
+# Refs:
+# - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/run-number
+# - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
+name: $(Build.DefinitionName)_$(date:yyMM).$(date:dd)$(rev:rrr)
+
+jobs:
+  ####################
+  # Visual Studio 2022
+  ####################
+
+  - job: Win32Vs22Build
+    displayName: libHttpClient Win32/UWP VS2022 Build
+    variables:
+      GDKNugetVersion: 2510.0.6194
+      GDKVersion: 251000
+      GameDK: $(Pipeline.Workspace)\gdk
+      GameDKCoreLatest: $(GameDK)\Microsoft.GDK.Windows.$(GDKNugetVersion)\native\$(GDKVersion)\
+    pool:
+      vmImage: windows-2022
+    timeoutInMinutes: 240
+    strategy:
+      matrix:
+        x86_Debug:
+          Platform: x86
+          Configuration: Debug
+        x64_Debug:
+          Platform: x64
+          Configuration: Debug
+        ARM64_Debug:
+          Platform: ARM64
+          Configuration: Debug
+        x86_Release:
+          Platform: x86
+          Configuration: Release
+        x64_Release:
+          Platform: x64
+          Configuration: Release
+        ARM64_Release:
+          Platform: ARM64
+          Configuration: Release
+    steps:
+      - template: Tasks/vs2022-build.yml
+        parameters:
+          platform: $(Platform)
+          configuration: $(Configuration)
+
+  ####################
+  # Android
+  ####################
+
+  # - job: AndroidBuild
+  #   displayName: libHttpClient Android Build
+  #   pool:
+  #     vmImage: windows-2019
+  #   timeoutInMinutes: 180
+  #   strategy:
+  #     matrix:
+  #       Debug:
+  #         Configuration: Debug
+  #       Release:
+  #         Configuration: Release
+  #   steps:
+  #     - template: Tasks/android-build.yml
+  #       parameters:
+  #         configuration: $(Configuration)
+
+  ####################
+  # iOS
+  ####################
+
+  - job: iOSBuild
+    displayName: libHttpClient iOS Build
+    pool:
+      vmImage: macOS-15
+    timeoutInMinutes: 180
+    strategy:
+      matrix:
+        Debug:
+          Configuration: Debug
+        Release:
+          Configuration: Release
+    steps:
+      - template: Tasks/ios-build.yml
+        parameters:
+          configuration: $(Configuration)
+
+  ####################
+  # Linux
+  ####################
+
+  - job: LinuxBuild
+    displayName: libHttpClient Linux Build
+    pool:
+      vmImage: ubuntu-22.04
+    timeoutInMinutes: 180
+    strategy:
+      matrix:
+        Debug:
+          Configuration: Debug
+        Release:
+          Configuration: Release
+    steps:
+      - template: Tasks/linux-build.yml
+        parameters:
+          configuration: $(Configuration)

@@ -1,0 +1,60 @@
+<resources>
+    <!-- Palette aligned with LeviLauncher for Windows (emerald brand, zinc neutrals).
+         values-night/colors.xml holds the dark values. -->
+    <color name="primary">#10B981</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="secondary">#059669</color>
+    <color name="on_secondary">#FFFFFF</color>
+
+    <color name="primary_container">#E8F5E9</color>
+    <color name="on_primary_container">#047857</color>
+
+    <color name="tertiary">#0284C7</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="external_mod_ad">#E65100</color>
+
+    <color name="error">#EF4444</color>
+    <color name="on_error">#FFFFFF</color>
+
+    <color name="background">#F8FFF0</color>
+    <color name="surface">#F1F8E9</color>
+    <color name="surface_variant">#E8F5E9</color>
+    <color name="on_background">#27272A</color>
+    <color name="on_surface">#27272A</color>
+    <color name="on_surface_variant">#047857</color>
+
+    <color name="outline">#BDBDBD</color>
+    <color name="white">#FFFFFF</color>
+    <color name="divider">#E0E0E0</color>
+
+    <color name="scrim">#66000000</color>
+
+    <color name="glow_green">#34D399</color>
+    <color name="glow_cyan">#06B6D4</color>
+
+    <color name="abi_label_text">#000000</color>
+    <color name="accent_text">#059669</color>
+
+    <color name="text_primary">#27272A</color>
+    <color name="text_secondary">#52525B</color>
+    <color name="qa_icon_color">#27272A</color>
+    <color name="ic_launcher_adaptive_back">#F6F3EA</color>
+
+    <!-- Launcher UI tokens (Windows: surface / default / segment / border / input). -->
+    <color name="ui_chrome">@color/background</color>
+    <color name="ui_default">@color/surface_variant</color>
+    <color name="ui_segment">@color/primary</color>
+    <color name="ui_border">@color/outline</color>
+    <color name="ui_input">@color/surface_variant</color>
+    <color name="ui_strip">@color/surface</color>
+    <color name="ui_muted">#71717A</color>
+    <color name="ui_heading">#059669</color>
+    <color name="ui_card_surface">@color/surface</color>
+    <color name="ui_card_stroke">@android:color/transparent</color>
+    <color name="ui_inner_card_stroke">@android:color/transparent</color>
+    <color name="ui_danger">#C52F3B</color>
+    <color name="ui_danger_soft">#FDE8E8</color>
+    <color name="ui_warning_soft">#FFF8E6</color>
+    <color name="ui_warning">#B45309</color>
+</resources>

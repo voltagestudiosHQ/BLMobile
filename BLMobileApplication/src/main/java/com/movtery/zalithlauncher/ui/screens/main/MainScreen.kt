@@ -18,6 +18,9 @@
 
 package com.movtery.zalithlauncher.ui.screens.main
 
+import android.content.Intent
+import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -64,6 +67,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -125,6 +129,7 @@ import com.movtery.zalithlauncher.viewmodel.ModpackImportViewModel
 import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
 import com.movtery.zalithlauncher.viewmodel.sendKeepScreen
 import com.movtery.zalithlauncher.viewmodel.sendToast
+import org.levimc.launcher.ui.activities.SplashActivity
 
 @Composable
 fun MainScreen(
@@ -134,6 +139,9 @@ fun MainScreen(
     modifyVersionViewModel: ModifyVersionViewModel,
     submitError: (ErrorViewModel.ThrowableMessage) -> Unit
 ) {
+    val context = LocalContext.current
+    val supportsBedrockRuntime = Build.SUPPORTED_ABIS.contains("arm64-v8a")
+
     //监控当前是否有任务正在进行
     var taskRunning by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
@@ -209,6 +217,13 @@ fun MainScreen(
                         )
                     )
                 },
+                openBedrockLauncher = {
+                    if (supportsBedrockRuntime) {
+                        context.startActivity(Intent(context, SplashActivity::class.java))
+                    } else {
+                        Toast.makeText(context, R.string.bedrock_arm64_only, Toast.LENGTH_SHORT).show()
+                    }
+                },
                 changeExpandedState = {
                     changeTasksExpandedState()
                 },
@@ -260,6 +275,7 @@ private fun <E: TitledNavKey> TopBar(
     toDownloadScreen: () -> Unit,
     toMultiplayerScreen: () -> Unit,
     openFileManager: () -> Unit,
+    openBedrockLauncher: () -> Unit,
     changeExpandedState: () -> Unit,
 ) {
     val festivals = LocalFestivals.current
@@ -404,6 +420,27 @@ private fun <E: TitledNavKey> TopBar(
                             modifier = Modifier.size(22.dp),
                             painter = painterResource(R.drawable.ic_assignment_filled),
                             contentDescription = stringResource(R.string.main_task_menu)
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = inLauncherScreen) {
+                    Row(
+                        modifier = Modifier
+                            .clip(shape = MaterialTheme.shapes.large)
+                            .clickable(onClick = openBedrockLauncher)
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(R.drawable.ic_bedrock_cube),
+                            contentDescription = null
+                        )
+                        Text(
+                            text = stringResource(R.string.bedrock_launcher),
+                            style = MaterialTheme.typography.labelMedium
                         )
                     }
                 }

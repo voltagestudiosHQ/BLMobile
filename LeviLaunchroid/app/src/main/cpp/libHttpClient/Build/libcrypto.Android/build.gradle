@@ -1,0 +1,26 @@
+apply plugin: "com.android.library"
+
+android {
+    compileSdkVersion 31
+    ndkVersion "27.2.12479018"
+
+    defaultConfig {
+        targetSdkVersion 34
+        minSdkVersion 21
+
+        externalNativeBuild {
+            cmake {
+                // externalNativeBuild normally skips static
+                // lib targets. This forces it to build.
+                targets "libcrypto.Android"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            buildStagingDirectory "${project.buildDir.getParentFile().getAbsolutePath()}/.cxx/${project.name}"
+        }
+    }
+}

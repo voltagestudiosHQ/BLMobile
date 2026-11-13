@@ -350,6 +350,7 @@ dependencies {
     implementation(project(":InputMap"))
     implementation(project(":Guide"))
     implementation(project(":PetLib"))
+    implementation(project(":BedrockRuntime"))
     //Utils
     implementation(libs.bytehook)
     implementation(libs.gson)

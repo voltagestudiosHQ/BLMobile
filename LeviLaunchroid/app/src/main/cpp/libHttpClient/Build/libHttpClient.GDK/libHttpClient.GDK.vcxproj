@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A5A6E02A-21BA-4D55-9FB9-7B24DEDD3743}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <GDKExtLibNames>;</GDKExtLibNames>
+    <PlatformToolset Condition="$(VisualStudioVersion)==14">v140</PlatformToolset>
+    <PlatformToolset Condition="$(VisualStudioVersion)==15">v141</PlatformToolset>
+    <PlatformToolset Condition="$(VisualStudioVersion)==16">v142</PlatformToolset>
+    <PlatformToolset Condition="$(VisualStudioVersion)==17">v143</PlatformToolset>
+  </PropertyGroup>
+  
+  <!-- Configurable target naming - default to include suffix -->
+  <PropertyGroup>
+    <LibHttpClientIncludeSuffix Condition="'$(LibHttpClientIncludeSuffix)' == ''">true</LibHttpClientIncludeSuffix>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="libHttpClient.GDK.def" />
+  </ItemGroup>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(libHttpClient.GDK.props))" />
+  <ItemDefinitionGroup>
+    <Link>
+      <ModuleDefinitionFile>$(HCBuildRoot)\$(ProjectName)\$(ProjectName).def</ModuleDefinitionFile>
+      <AdditionalDependencies>%(AdditionalDependencies);Appnotify.lib;winhttp.lib;crypt32.lib</AdditionalDependencies>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">/profile /opt:ref /opt:icf /guard:cf /DYNAMICBASE %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">/profile /opt:ref /opt:icf /guard:cf /DYNAMICBASE %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <ClCompile>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Gaming.Desktop.x64'">/Zi /guard:cf %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Gaming.Desktop.x64'">/Zi /guard:cf %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(HCBuildRoot)\libHttpClient.Common\libHttpClient.Common.vcxitems" Label="Shared" />
+  <Import Project="$(HCBuildRoot)\libHttpClient.GDK.Shared\libHttpClient.GDK.Shared.vcxitems" Label="Shared" />
+  <Import Condition="'$(HCNoZlib)' != 'true'" Project="$(HCBuildRoot)\libHttpClient.Zlib\libHttpClient.Zlib.vcxitems" Label="Shared" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  
+  <!-- Apply configurable target naming after all imports -->
+  <PropertyGroup>
+    <TargetName Condition="'$(LibHttpClientIncludeSuffix)' != 'false'">libHttpClient.GDK</TargetName>
+    <TargetName Condition="'$(LibHttpClientIncludeSuffix)' == 'false'">libHttpClient</TargetName>
+  </PropertyGroup>
+</Project>

@@ -1,4 +1,5 @@
 # BedroomLauncher
+
 [![Downloads](https://img.shields.io/github/downloads/voltageStudiosOfficial/BLMobile/total)](https://github.com/voltagestudiosHQ/BLMobile/releases)
 
 > [!IMPORTANT]
@@ -6,7 +7,7 @@
 
 **Bedroom Launcher** = Minecraft Java on your phone, but prettier.
 
-We took PojavLauncher’s engine, slapped on a clean Material 3 UI, and made it actually fun to use. Java works right now. Bedrock support is coming later via LeviLaunchroid so you can play both worlds from one app.
+We took PojavLauncher’s engine, slapped on a clean Material 3 UI, and bundled LeviLaunchroid’s Bedrock launcher in the same app. Java works; Bedrock support is experimental and currently limited to ARM64 devices.
 
 **Play nice:** Use Bedroom Launcher with Mojang’s EULA in mind. You need to own Minecraft to play. We also include a **Dev Mode** toggle that bypasses some restrictions for testing/modding — use it responsibly and only with accounts you own.
 
@@ -17,6 +18,7 @@ Heads up: If you find a “Bedroom Launcher” site that isn’t linked here, it
 ## ✨ What works now
 
 - **Java Edition**: Full Microsoft login, mods, resource packs, custom JVM flags
+- **Bedrock Edition**: Embedded LeviLaunchroid launcher and content tools (experimental, ARM64 only)
 - **Modern UI**: Jetpack Compose + Material You. Dark mode, smooth animations, no clutter
 - **Instances**: Separate profiles for each modpack/setup
 
@@ -25,20 +27,20 @@ Heads up: If you find a “Bedroom Launcher” site that isn’t linked here, it
 | Feature | Status |
 | --- | --- |
 | **Java Edition Support** | ✅ Ready to play |
-| **Bedrock Edition Support** | 🔜 Coming via LeviLaunchroid |
+| **Bedrock Edition Support** | 🧪 Experimental via embedded LeviLaunchroid; ARM64 only |
 | **ely.by Support** | 🔜 Planned |
 
-Java first, Bedrock next. ely.by login is on the list too.
+Java is ready; Bedrock integration is experimental. ely.by login is still planned.
 
 ## 📦 Build it yourself
 
 ### Requirements
 
-* Android Studio **Bumblebee** or newer
-* Android SDK:
-    * **Minimum:** Android 8.0 Oreo (API 26)
-    * **Target:** Android 14 (API 34)
-* JDK 17
+- Android Studio **Bumblebee** or newer
+- Android SDK:
+  - **Minimum:** Android 8.0 Oreo (API 26)
+  - **Target:** Android 14 (API 34)
+- JDK 17
 
 ### Build Steps
 
@@ -60,7 +62,7 @@ cd BLMobile
 
 ## ⚖️ Disclaimer
 
-Unofficial launcher. Not made by or endorsed by Mojang, Microsoft, Levi, LeviLaunchroid, ZalithLauncher2, or ely.by. You need to own Minecraft to play. Dev Mode exists for testing only — you are responsible for complying with Mojang’s EULA. [LeviLaunchroid](https://github.com/LiteLDev/LeviLaunchroid) handles our future Bedrock support and is its own project.
+Unofficial launcher. Not made by or endorsed by Mojang, Microsoft, Levi, LeviLaunchroid, ZalithLauncher2, or ely.by. You need to own Minecraft to play. Dev Mode exists for testing only — you are responsible for complying with Mojang’s EULA. Bedrock launcher source is bundled under [`LeviLaunchroid/`](./LeviLaunchroid/) and retains its own attribution and Apache-2.0 license.
 
 ---
 
@@ -74,6 +76,7 @@ This software uses the following open source libraries:
 
 | Library | Copyright | License | Official Link |
 | --- | --- | --- | --- |
+| LeviLaunchroid | Copyright © Levi and contributors | Apache 2.0 | [Link](https://github.com/LiteLDev/LeviLaunchroid) |
 | androidx-constraintlayout-compose | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/develop/ui/compose/layouts/constraintlayout) |
 | androidx-material-icons-core | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/jetpack/androidx/releases/compose-material) |
 | androidx-material-icons-extended | Copyright © The Android Open Source Project | Apache 2.0 | [Link](https://developer.android.com/jetpack/androidx/releases/compose-material) |

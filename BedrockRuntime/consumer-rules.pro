@@ -1,0 +1,2 @@
+-keep class org.levimc.launcher.** { *; }
+-keep class com.mojang.minecraftpe.** { *; }

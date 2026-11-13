@@ -1,0 +1,54 @@
+apply plugin: "com.android.library"
+
+android {
+    compileSdkVersion 31
+    ndkVersion "27.2.12479018"
+
+    defaultConfig {
+        targetSdkVersion 34
+        minSdkVersion 21
+
+        externalNativeBuild {
+            cmake {
+                if (project.hasProperty("HC_NOWEBSOCKETS")) {
+                    arguments << "-DHC_NOWEBSOCKETS=1"
+                }
+                if (project.hasProperty("BUILD_SHARED_LIBS")) {
+                    arguments << "-DBUILD_SHARED_LIBS=1"
+                    arguments << "-DANDROID_STL=c++_shared"
+                }
+
+                // Support 16KB page sizes on 64-bit devices
+                // https://developer.android.com/guide/practices/page-sizes#compile-16-kb-alignment
+                arguments << "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+
+                // externalNativeBuild normally skips static
+                // lib targets. This forces it to build.
+                targets "libHttpClient.Android"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            buildStagingDirectory "${project.buildDir.getParentFile().getAbsolutePath()}/.cxx/${project.name}"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility=JavaVersion.VERSION_1_7
+        targetCompatibility=JavaVersion.VERSION_1_7
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android.txt")
+        }
+    }
+}
+
+dependencies {
+    implementation "com.squareup.okhttp3:okhttp:4.9.2"
+}

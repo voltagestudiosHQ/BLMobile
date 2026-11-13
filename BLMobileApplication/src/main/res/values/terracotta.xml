@@ -7,6 +7,10 @@
   must be single-line and must not contain a double hyphen.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Label of the embedded Bedrock launcher action on the launcher home screen -->
+    <string name="bedrock_launcher">Bedrock</string>
+    <!-- Toast shown when opening the embedded Bedrock launcher on a non-ARM64 device -->
+    <string name="bedrock_arm64_only">Bedrock gameplay currently requires an ARM64 device.</string>
     <!-- Label of the multiplayer entry in the top bar of the launcher main screen -->
     <string name="terracotta">Multiplayer</string>
     <!-- Footer of the in-game multiplayer menu dialog; %s is the Terracotta core version -->

@@ -18,9 +18,17 @@ plugins {
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    versionCatalogs {
+        create("leviLibs") {
+            from(files("LeviLaunchroid/gradle/libs.versions.toml"))
+        }
+    }
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://repo.opencollab.dev/maven-snapshots") }
+        maven { url = uri("https://repo.opencollab.dev/maven-releases") }
     }
 }
 
@@ -40,3 +48,8 @@ include(":Terracotta")
 include(":InputMap")
 include(":Guide")
 include(":PetLib")
+include(":BedrockRuntime")
+include(":minecraft")
+project(":minecraft").projectDir = file("LeviLaunchroid/minecraft")
+include(":pojav_controls")
+project(":pojav_controls").projectDir = file("LeviLaunchroid/pojav_controls")

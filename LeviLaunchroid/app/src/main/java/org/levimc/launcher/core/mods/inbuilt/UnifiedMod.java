@@ -1,0 +1,210 @@
+package org.levimc.launcher.core.mods.inbuilt;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
+
+public class UnifiedMod {
+
+    public enum Source {
+        INBUILT,
+        EXTERNAL
+    }
+
+    public enum ConfigType {
+        TOGGLE,
+        SLIDER_INT,
+        SLIDER_FLOAT,
+        RADIO,
+        COLOR,
+        KEYBIND,
+        TEXT,
+        BUTTON
+    }
+
+    public interface EnabledHandler {
+        void onEnabledChanged(UnifiedMod mod, boolean enabled);
+    }
+
+    public interface ConfigHandler {
+        void onConfigChanged(UnifiedMod mod, ConfigEntry config, String value);
+    }
+
+    public interface ConfigOpenHandler {
+        void onOpenConfig(UnifiedMod mod);
+    }
+
+    public static class ConfigEntry {
+        public final String key;
+        public final String displayName;
+        public final ConfigType type;
+        public final String defaultValue;
+        public final String minValue;
+        public final String maxValue;
+        public String currentValue;
+        public final String dependsOn;
+
+        public ConfigEntry(String key, String displayName, ConfigType type,
+                           String defaultValue, String minValue, String maxValue,
+                           String currentValue, String dependsOn) {
+            this.key = key;
+            this.displayName = displayName;
+            this.type = type;
+            this.defaultValue = defaultValue;
+            this.minValue = minValue;
+            this.maxValue = maxValue;
+            this.currentValue = currentValue;
+            this.dependsOn = dependsOn;
+        }
+    }
+
+    private final String id;
+    private final String name;
+    private final String description;
+    private final String modId;
+    private final String groupId;
+    private final String groupName;
+    private final String stableKey;
+    private final Source source;
+    private boolean enabled;
+    private final List<ConfigEntry> configEntries;
+    private final boolean forceHasConfig;
+    private final EnabledHandler enabledHandler;
+    private final ConfigHandler configHandler;
+    private final ConfigOpenHandler configOpenHandler;
+    private RuntimeConfigSchema localConfigSchema;
+    private long runtimeConfigSchemaRevision;
+    private final Map<String, String> runtimeConfigValues = new HashMap<>();
+
+    public UnifiedMod(String id, String name, String description, String modId,
+                      Source source, boolean enabled, List<ConfigEntry> configEntries,
+                      boolean forceHasConfig, String groupId, String groupName,
+                      EnabledHandler enabledHandler, ConfigHandler configHandler) {
+        this(id, name, description, modId, source, enabled, configEntries,
+                forceHasConfig, groupId, groupName, enabledHandler, configHandler, null);
+    }
+
+    public UnifiedMod(String id, String name, String description, String modId,
+                      Source source, boolean enabled, List<ConfigEntry> configEntries,
+                      boolean forceHasConfig, String groupId, String groupName,
+                      EnabledHandler enabledHandler, ConfigHandler configHandler,
+                      ConfigOpenHandler configOpenHandler) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.modId = modId;
+        this.groupId = normalizeGroupValue(groupId, defaultGroupId(source, modId));
+        this.groupName = normalizeGroupValue(groupName, defaultGroupName(source, modId));
+        this.stableKey = source.name().toLowerCase(Locale.US) + ":" + id;
+        this.source = source;
+        this.enabled = enabled;
+        this.configEntries = configEntries != null ? configEntries : Collections.emptyList();
+        this.forceHasConfig = forceHasConfig;
+        this.enabledHandler = enabledHandler;
+        this.configHandler = configHandler;
+        this.configOpenHandler = configOpenHandler;
+    }
+
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
+    public String getModId() { return modId; }
+    public String getGroupId() { return groupId; }
+    public String getGroupName() { return groupName; }
+    public Source getSource() { return source; }
+    public String getStableKey() { return stableKey; }
+    public boolean isEnabled() { return enabled; }
+    public List<ConfigEntry> getConfigEntries() { return configEntries; }
+    public boolean hasConfig() { return forceHasConfig || !configEntries.isEmpty() || localConfigSchema != null || runtimeConfigSchemaRevision > 0; }
+    public RuntimeConfigSchema getLocalConfigSchema() { return localConfigSchema; }
+    public void setLocalConfigSchema(RuntimeConfigSchema schema) { localConfigSchema = schema; }
+    public long getRuntimeConfigSchemaRevision() { return runtimeConfigSchemaRevision; }
+    public void setRuntimeConfigSchemaRevision(long revision) { runtimeConfigSchemaRevision = Math.max(0L, revision); }
+
+    public boolean openCustomConfig() {
+        if (configOpenHandler == null) return false;
+        configOpenHandler.onOpenConfig(this);
+        return true;
+    }
+
+    public void applyEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (enabledHandler != null) {
+            enabledHandler.onEnabledChanged(this, enabled);
+        }
+    }
+
+    public void updateConfig(ConfigEntry config, String value) {
+        if (config == null) {
+            return;
+        }
+        config.currentValue = value == null ? "" : value;
+        runtimeConfigValues.put(config.key, config.currentValue);
+        if (configHandler != null) {
+            configHandler.onConfigChanged(this, config, config.currentValue);
+        }
+    }
+
+    public void updateConfig(String key, String value) {
+        if (key == null || key.isEmpty()) return;
+        ConfigEntry existing = findConfigEntry(key);
+        if (existing != null) {
+            updateConfig(existing, value);
+            return;
+        }
+        String safeValue = value == null ? "" : value;
+        runtimeConfigValues.put(key, safeValue);
+        if (configHandler != null) {
+            ConfigEntry transientEntry = new ConfigEntry(
+                    key, key, ConfigType.TEXT, "", "", "", safeValue, "");
+            configHandler.onConfigChanged(this, transientEntry, safeValue);
+        }
+    }
+
+    public ConfigEntry findConfigEntry(String key) {
+        if (key == null) return null;
+        for (ConfigEntry entry : configEntries) {
+            if (key.equals(entry.key)) return entry;
+        }
+        return null;
+    }
+
+    public void setRuntimeConfigValue(String key, String value) {
+        if (key == null || key.isEmpty()) return;
+        runtimeConfigValues.put(key, value == null ? "" : value);
+    }
+
+    public String getConfigValue(String key, String fallback) {
+        String runtime = runtimeConfigValues.get(key);
+        if (runtime != null) return runtime;
+        ConfigEntry entry = findConfigEntry(key);
+        if (entry != null) {
+            if (entry.currentValue != null && !entry.currentValue.isEmpty()) return entry.currentValue;
+            if (entry.defaultValue != null && !entry.defaultValue.isEmpty()) return entry.defaultValue;
+        }
+        return fallback;
+    }
+
+    private static String defaultGroupId(Source source, String modId) {
+        if (source == Source.INBUILT) {
+            return "inbuilt";
+        }
+        String normalizedModId = trimToEmpty(modId);
+        return normalizedModId.isEmpty() ? "external:ungrouped" : "external:" + normalizedModId;
+    }
+
+    private static String defaultGroupName(Source source, String modId) {
+        return defaultGroupId(source, modId);
+    }
+
+    private static String normalizeGroupValue(String value, String fallback) {
+        String normalized = trimToEmpty(value);
+        return normalized.isEmpty() ? fallback : normalized;
+    }
+
+    private static String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+}

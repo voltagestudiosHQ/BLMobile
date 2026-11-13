@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Condition="'$(LibHttpClientImported)' == 'true'" Project="Error attempting to import LibHttpClient twice. Condition all imports on ('ProjectName'Imported) != true." />
+  <PropertyGroup>
+    <LibHttpClientImported>true</LibHttpClientImported>
+  </PropertyGroup>
+
+  <Import Condition="'$(HCPlatform)' == ''" Project="$(MSBuildThisFileDirectory)platform_select.props" />
+  <PropertyGroup>
+    <HCLibPlatformType>$(HCPlatform)</HCLibPlatformType>
+  </PropertyGroup>
+
+  <!-- Valid values for HCLibPlatformType:
+      UWP
+      Win32
+      XDK
+      GDK
+    -->
+
+  <PropertyGroup Condition="'$(HCLibPlatformType)' == ''">
+    <HCLibPlatformType Condition="'$(ApplicationType)'=='Windows Store'">UWP</HCLibPlatformType>
+    <HCLibPlatformType Condition="'$(ApplicationType)'=='' AND '$(Platform)'=='Durango'">XDK</HCLibPlatformType>
+    <HCLibPlatformType Condition="'$(ApplicationType)'=='' AND ('$(Platform)'=='Gaming.Desktop.x64' OR '$(Platform)'=='Gaming.Xbox.XboxOne.x64' OR '$(Platform)'=='Gaming.Xbox.Scarlett.x64')">GDK</HCLibPlatformType>
+    <HCLibPlatformType Condition="'$(ApplicationType)'=='' AND '$(Platform)'!='Durango' AND '$(Platform)'!='Gaming.Desktop.x64' AND '$(Platform)'!='Gaming.Xbox.XboxOne.x64' AND '$(Platform)'!='Gaming.Xbox.Scarlett.x64'">Win32</HCLibPlatformType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Back compat reasons -->
+    <HCLibPlatformType Condition="'$(HCLibPlatformType)'=='GSDK' OR '$(HCLibPlatformType)'=='GXDK'">GDK</HCLibPlatformType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <useWsppWebsockets>false</useWsppWebsockets>
+    <HCLibToolset>$(PlatformToolsetVersion)</HCLibToolset>
+    <HCLibToolset Condition="'$(PlatformToolset)'=='v141'">141</HCLibToolset>
+    <HCLibToolset Condition="'$(PlatformToolset)'=='v142'">142</HCLibToolset>
+    <HCLibToolset Condition="'$(PlatformToolset)'=='v143'">143</HCLibToolset>
+
+    <HCProjectName>libHttpClient.$(HCLibToolset).$(HCLibPlatformType).C</HCProjectName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <HCRoot Condition="'$(HCRoot)'==''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), build.root))\</HCRoot>
+    <HCBuildRoot>$(HCRoot)\Build</HCBuildRoot>
+    <libHttpClientInclude>$(HCRoot)\Include\</libHttpClientInclude>
+  </PropertyGroup>
+
+  <!--Import hc_settings file after defining props so that they can be overriden-->
+  <PropertyGroup>
+    <HCSettingsFile>$([MSBuild]::GetDirectoryNameOfFileAbove($(HCRoot), hc_settings.props))\hc_settings.props</HCSettingsFile>
+  </PropertyGroup>
+  <Import Project="$(HCSettingsFile)" Condition="Exists($(HCSettingsFile)) AND '$(HCSettingsImported)' != 'true'" />
+  <PropertyGroup>
+    <HCSettingsImported>true</HCSettingsImported>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(HCRoot)\Build\$(HCProjectName)\$(HCProjectName).vcxproj" Condition="'$(ConfigurationType)'!='StaticLibrary' And ('$(HCLibPlatformType)' == 'Win32' Or '$(HCLibPlatformType)' == 'GDK' Or '$(HCLibPlatformType)' == 'UWP')">
+      <Project Condition="'$(HCLibPlatformType)' == 'Win32' and '$(HCLibToolset)' == '141'">{BEDE280F-17F7-4A09-9F5D-2E02FBB1C490}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'Win32' and '$(HCLibToolset)' == '142'">{961F48EA-33A9-47F1-9C96-715D6094D79B}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'Win32' and '$(HCLibToolset)' == '143'">{9164C6C9-3872-4922-A3E3-3822622D3E71}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'UWP' and '$(HCLibToolset)' == '141'">{5B498CF9-1803-438F-98FC-25F42759F440}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'UWP' and '$(HCLibToolset)' == '142'">{53C69CF3-B0B8-4A64-B178-0E9370737F70}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'UWP' and '$(HCLibToolset)' == '143'">{2E55AA9F-A132-477C-B4FF-B4CD551E4322}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'GDK' and '$(HCLibToolset)' == '141'">{78C0122C-6B2D-4054-8C49-448277DD7A7D}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'GDK' and '$(HCLibToolset)' == '142'">{66365E18-7B53-44BF-A348-6735058E359E}</Project>
+      <Project Condition="'$(HCLibPlatformType)' == 'GDK' and '$(HCLibToolset)' == '143'">{0A6D51A3-0D86-4D0E-9DAA-54BA75E1DA1C}</Project>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemDefinitionGroup Condition="'$(HCNoWebSockets)'=='true'">
+    <ClCompile>
+      <PreprocessorDefinitions>
+        HC_NOWEBSOCKETS;
+        HC_WINHTTP_WEBSOCKETS=0;
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(libHttpClientInclude)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies Condition="'$(HCLibPlatformType)'=='Win32' OR '$(HCLibPlatformType)'=='GDK'">%(AdditionalDependencies);Appnotify.lib;winhttp.lib;crypt32.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <Import Condition="'$(OpenSslImported)' != 'true' and '$(useWsppWebsockets)' == 'true'" Project="$(HCBuildRoot)\openssl.import.props" />
+
+  <!--Bring in XCurl on GDK-->
+  <ImportGroup Condition="'$(HCLibPlatformType)' == 'GDK' AND '$(GameDK)' != '' AND exists('$(GameDK)\$(XdkEditionTarget)\GRDK\ExtensionLibraries\Xbox.XCurl.API\ExtensionLibrary.props')">
+    <Import Project="$(GameDK)\$(XdkEditionTarget)\GRDK\ExtensionLibraries\Xbox.XCurl.API\ExtensionLibrary.props"/>
+  </ImportGroup>
+  <ImportGroup Condition="'$(HCLibPlatformType)' == 'GDK' AND '$(GameDK)' != '' AND exists('$(GameDK)\$(XdkEditionTarget)\GRDK\ExtensionLibraries\Xbox.XCurl.API\DesignTime\CommonConfiguration\neutral\ExtensionLibrary.props')">
+    <Import Project="$(GameDK)\$(XdkEditionTarget)\GRDK\ExtensionLibraries\Xbox.XCurl.API\DesignTime\CommonConfiguration\neutral\ExtensionLibrary.props"/>
+  </ImportGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(Console_SdkLibPath)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <Target Name="HCBuildDebug">
+    <PropertyGroup>
+      <!-- Useful constants -->
+      <Dir>$([System.IO.Path]::DirectorySeparatorChar)</Dir>
+      <N>%0D%0A</N>
+      <T>%09</T>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="HCBuildDebug" />
+    <Message Importance="High" Text="    ProjectName                  = '$(ProjectName)'" />
+    <Message Importance="High" Text="    Configuration                = '$(Configuration)'" />
+    <Message Importance="High" Text="    Platform                     = '$(Platform)'" />
+    <Message Importance="High" Text="    ConfigurationType            = '$(ConfigurationType)'" />
+    <Message Importance="High" Text="    HCLibPlatformType            = '$(HCLibPlatformType)'" />
+    <Message Importance="High" Text=" " />
+    <Message Importance="High" Text="    XES_INTERMEDIATESDIRECTORY   = '$(XES_INTERMEDIATESDIRECTORY)'" />
+    <Message Importance="High" Text="    XES_OUTDIR                   = '$(XES_OUTDIR)'" />
+    <Message Importance="High" Text=" " />
+    <Message Importance="High" Text="    HCRoot                       = '$(HCRoot)'" />
+    <Message Importance="High" Text="    HCLibToolset                 = '$(HCLibToolset)'" />
+    <Message Importance="High" Text="    HCProjectName                = '$(HCProjectName)'" />
+    <Message Importance="High" Text="    libHttpClientInclude         = '$(libHttpClientInclude)'" />
+    <Message Importance="High" Text="    useWsppWebsockets            = '$(useWsppWebsockets)'" />
+    <Message Importance="High" Text=" " />
+    <Message Importance="High" Text="    IntDir                       = '$(IntDir)'" />
+    <Message Importance="High" Text="    OutDir                       = '$(OutDir)'" />
+    <Message Importance="High" Text="    LibPath                      = '$(LibPath)'" />
+    <Message Importance="High" Text="    IntermediateOutputPath       = '$(IntermediateOutputPath)'" />
+    <Message Importance="High" Text="    OutputPath                   = '$(OutputPath)'" />
+    <Message Importance="High" Text=" " />
+    <Message Importance="High" Text="  ClCompile$(N)    Identity = '%(ClCompile.Identity)'$(N)    AdditionalIncludeDirectories = '%(ClCompile.AdditionalIncludeDirectories)'$(N)" />
+    <Message Importance="High" Text="  Link$(N)    Identity = '%(Link.Identity)'$(N)    AdditionalDependencies = '%(Link.AdditionalDependencies)'$(N)" />
+  </Target>
+
+</Project>

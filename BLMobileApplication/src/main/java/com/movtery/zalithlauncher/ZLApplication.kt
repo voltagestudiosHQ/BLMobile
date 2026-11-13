@@ -20,6 +20,7 @@ package com.movtery.zalithlauncher
 
 import android.app.Application
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Process
 import android.util.Log
 import coil3.ImageLoader
@@ -52,6 +53,7 @@ import com.movtery.zalithlauncher.utils.network.TLSSecurity
 import com.movtery.zalithlauncher.utils.writeCrashFile
 import com.tencent.mmkv.MMKV
 import dagger.hilt.android.HiltAndroidApp
+import org.levimc.launcher.core.minecraft.LauncherApplication
 import okio.Path.Companion.toOkioPath
 import kotlin.properties.Delegates
 
@@ -94,6 +96,9 @@ class ZLApplication : Application(), SingletonImageLoader.Factory {
             Fishnet.init(this, PathManager.DIR_NATIVE_LOGS.absolutePath)
 
             MMKV.initialize(this)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P || Application.getProcessName() == packageName) {
+                LauncherApplication.initializeEmbedded(this)
+            }
             loadAllSettings(this)
             applyLanguage(AllSettings.launcherLanguage.getValue())
 
