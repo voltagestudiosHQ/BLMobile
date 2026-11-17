@@ -2,7 +2,9 @@ name: Nightly Release
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 3 * * *"
+      timezone: "America/Los_Angeles"
+  workflow_dispatch:
 
 concurrency:
   group: nightly-${{ github.ref }}
@@ -28,10 +30,10 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import datetime
           import os
           import pathlib
           import re
+          import subprocess
 
           properties = pathlib.Path("BedroomLauncherMobile/gradle.properties")
           text = properties.read_text()
@@ -41,7 +43,11 @@ jobs:
               raise SystemExit("Expected exactly one integer launcher_version_code")
 
           code = int(code_matches[0].group(1)) + 10
-          name = "Nightly " + datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+          short_sha = subprocess.check_output(
+              ["git", "rev-parse", "--short=7", os.environ["GITHUB_SHA"]],
+              text=True,
+          ).strip()
+          name = f"Nightly {short_sha}"
           text = re.sub(r"(?m)^launcher_version_code=\d+$", f"launcher_version_code={code}", text)
           name_matches = list(re.finditer(r"(?m)^launcher_version_name=.*$", text))
           if len(name_matches) != 1:
